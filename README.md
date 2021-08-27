@@ -1,5 +1,6 @@
 # Aurora Shader Suite
 Requires Unity 2019.1.x or greater.
+Includes output template for Substance Painter.
 
 A suite of tools and a shader for a personal project. Takes advantage of a texture swizzle ('Aurora') to represent Metallic, Occlusion, Emission, and Curvature.
 
