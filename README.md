@@ -1,4 +1,5 @@
 # Aurora Shader Suite
+Requires Unity 2019.1.x or greater.
 
 A suite of tools and a shader for a personal project. Takes advantage of a texture swizzle ('Aurora') to represent Metallic, Occlusion, Emission, and Curvature.
 
@@ -12,7 +13,6 @@ Supports armor sets and textures from the following 'Halo' games:
 * Halo 3
 * Halo 4 (Storm)
 * Halo 5: Forge
-
 
 This suite is licensed under the MIT License.
 
