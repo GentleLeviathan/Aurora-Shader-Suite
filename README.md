@@ -1,8 +1,20 @@
 # Aurora Shader Suite
+Requires Unity 2019.1.x or greater.
 
 A suite of tools and a shader for a personal project. Takes advantage of a texture swizzle ('Aurora') to represent Metallic, Occlusion, Emission, and Curvature.
 
-Includes a set of 'Helper' tools that can also enable the use of assets inspired by Microsoft's 'Halo' games.
+Unique features include:
+  * 4 channel color masking via an RGBA color control texture (3 channels have color properties)
+  * Per color mask channel pattern support (useful for camouflage or fabric)
+  * Color 'depth' for increasing texture contrast via slider
+  * Detail diffuse and normal with strength slider and tiling/offset vector
+
+Includes a set of 'Helper' tools, including:
+  * OpenGL to DirectX normal format (and vice-versa)
+  * Tool to pack traditional Metallic_Smoothness, Occlusion, Emission, and Curvature textures into the 'Aurora' swizzle format.
+  * Material baking (for applying shader color zones, patterns, and depth to a new diffuse texture to be used elsewhere.)
+
+And a few additional helpers to enable the use of assets inspired by Microsoft's 'Halo' games.
 Supports armor sets and textures from the following 'Halo' games:
 
 * Halo Reach
@@ -12,7 +24,6 @@ Supports armor sets and textures from the following 'Halo' games:
 * Halo 3
 * Halo 4 (Storm)
 * Halo 5: Forge
-
 
 This suite is licensed under the MIT License.
 
