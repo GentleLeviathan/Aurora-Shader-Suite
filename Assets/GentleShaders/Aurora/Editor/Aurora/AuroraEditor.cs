@@ -15,7 +15,7 @@ namespace GentleShaders.Aurora
     [CanEditMultipleObjects]
     public class AuroraEditor : ShaderGUI
     {
-        public static string currentVersion = "AR1.0";
+        public static string currentVersion = "AR1.3";
 
         #region Properties and Fields
 
@@ -23,7 +23,7 @@ namespace GentleShaders.Aurora
         MaterialProperty mainTex;
         MaterialProperty cc;
         MaterialProperty auroraTex;
-        MaterialProperty coating;
+        MaterialProperty pattern;
         MaterialProperty normal;
 
         MaterialProperty primaryColor;
@@ -47,7 +47,6 @@ namespace GentleShaders.Aurora
         private bool texFound = false;
         private bool performedUpdateCheck = false;
         private bool gotProperties = false;
-        private bool updateReady = false;
 
         private bool colorTexToggle = false;
         private bool simpleRoughnessToggle = false;
@@ -56,6 +55,7 @@ namespace GentleShaders.Aurora
         private bool showAurora = false;
         private bool showAltTextures = false;
         private bool showHelpers = false;
+        private bool updateReady;
 
         #endregion
 
@@ -71,10 +71,6 @@ namespace GentleShaders.Aurora
         {
             performedUpdateCheck = true;
             updateReady = await AuroraUpdateChecker.CheckForUpdates();
-            if (updateReady)
-            {
-                ReadyForUpdate();
-            }
         }
 
         private void OnClosed()
@@ -90,7 +86,7 @@ namespace GentleShaders.Aurora
                 showAltTextures = true;
             }
 
-            simpleRoughnessToggle = mat.IsKeywordEnabled("SIMPLE_ROUGHNESS");
+            simpleRoughnessToggle = mat.IsKeywordEnabled("_SIMPLE_ROUGHNESS");
            
         }
 
@@ -100,7 +96,10 @@ namespace GentleShaders.Aurora
         {
             if (!texFound) { InitTex(); }
 
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                               // Note: This is intentional!
             if (!performedUpdateCheck) { PerformUpdateCheck(); }
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
             Material target = materialEditor.target as Material;
 
@@ -131,7 +130,7 @@ namespace GentleShaders.Aurora
 
             mainTex = ShaderGUI.FindProperty("_MainTex", properties);
             cc = ShaderGUI.FindProperty("_CC", properties);
-            coating = ShaderGUI.FindProperty("_Coating", properties);
+            pattern = ShaderGUI.FindProperty("_Pattern", properties);
             auroraTex = ShaderGUI.FindProperty("_Aurora", properties);
             normal = ShaderGUI.FindProperty("_BumpMap", properties);
 
@@ -162,6 +161,7 @@ namespace GentleShaders.Aurora
 
         private void DisplayCustomGUI(MaterialEditor materialEditor, Material target)
         {
+            ReadyForUpdate();
             GUILayout.Label(header, GUILayout.MinWidth(240), GUILayout.MaxWidth(1000), GUILayout.MinHeight(190), GUILayout.MaxHeight(300));
 
             EditorGUI.BeginChangeCheck();
@@ -232,12 +232,12 @@ namespace GentleShaders.Aurora
                 GUILayout.Space(4f);
 
                 GUILayout.Space(4f);
-                GUILayout.Label("Coating", EditorStyles.boldLabel);
-                materialEditor.TextureProperty(coating, "Coating (RGBA)", false);
+                GUILayout.Label("Pattern", EditorStyles.boldLabel);
+                materialEditor.TextureProperty(pattern, "Pattern (RGBA)", false);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(MakeLabel("Coating Tiling", "The tiling applied to the coating texture"));
+                GUILayout.Label(MakeLabel("Pattern Tiling", "The tiling applied to the pattern texture"));
                 GUILayout.FlexibleSpace();
-                coating.textureScaleAndOffset = EditorGUILayout.Vector2Field("", coating.textureScaleAndOffset);
+                pattern.textureScaleAndOffset = EditorGUILayout.Vector2Field("", pattern.textureScaleAndOffset);
                 GUILayout.EndHorizontal();
                 GUILayout.Space(4f);
             }
@@ -321,7 +321,7 @@ namespace GentleShaders.Aurora
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button(new GUIContent("Bake Material", "Bakes the material's output into a texture, optionally including environment lighting."), GUILayout.Width(250f)))
                 {
-                    //run the utilitybaker process
+                    //run the baking process
                     AuroraBaker.BakeMaterialAsTexture((Material)materialEditor.target, bypassLighting);
                 }
                 bypassLighting = GUILayout.Toggle(bypassLighting, MakeLabel("Lighting Bypass", "Bypasses the light model of the material, making it unlit."));
@@ -379,13 +379,15 @@ namespace GentleShaders.Aurora
 
         private void ApplyShaderFeatures(Material mat)
         {
-            if (reflectCube.textureValue) { mat.EnableKeyword("CUBE_REFLECTION"); } else { mat.DisableKeyword("CUBE_REFLECTION"); }
+            if (reflectCube.textureValue) { mat.EnableKeyword("_CUBE_REFLECTION"); } else { mat.DisableKeyword("_CUBE_REFLECTION"); }
 
-            if (detailNormal.textureValue || detailTex.textureValue){ mat.EnableKeyword("DETAIL_TEXTURE"); } else { mat.DisableKeyword("DETAIL_TEXTURE"); }
+            if (detailNormal.textureValue || detailTex.textureValue){ mat.EnableKeyword("_DETAIL_TEXTURE"); } else { mat.DisableKeyword("_DETAIL_TEXTURE"); }
 
-            if (coating.textureValue) { mat.EnableKeyword("COATING"); } else { mat.DisableKeyword("COATING"); }
+            if (pattern.textureValue) { mat.EnableKeyword("_PATTERN"); } else { mat.DisableKeyword("_PATTERN"); }
 
-            if (simpleRoughnessToggle) { mat.EnableKeyword("SIMPLE_ROUGHNESS"); } else { mat.DisableKeyword("SIMPLE_ROUGHNESS"); }
+            if (simpleRoughnessToggle) { mat.EnableKeyword("_SIMPLE_ROUGHNESS"); } else { mat.DisableKeyword("_SIMPLE_ROUGHNESS"); }
+
+            if (illuminationColor.colorValue != Color.black) { mat.EnableKeyword("_ILLUMINATION"); } else { mat.DisableKeyword("_ILLUMINATION"); }
         }
 
         private void ApplyToggles(Material mat)

@@ -34,7 +34,7 @@ Shader "GentleShaders/Aurora"
 		_CC("CC", 2D) = "red" {}
 		[Normal]_BumpMap("Normal Map", 2D) = "bump" {}
 		_Aurora("Aurora Texture", 2D) = "black" {}
-		_Coating("Coating Texture", 2D) = "white" {}
+		_Pattern("Pattern Texture", 2D) = "white" {}
 
 		//Colors
 		_Color("Color", Color) = (1,0,0,0)
@@ -59,7 +59,7 @@ Shader "GentleShaders/Aurora"
 		_DetailStrength("Detail Map Strength", Range(0, 2)) = 0.5
 		_lightingBypass("bypassLighting", Int) = 0
 
-		[Enum(Add,0,Subtract,1,Multiply,2,Divide,3)] _BlendMode ("Coating Blend Mode", Float) = 0
+		[Enum(Add,0,Subtract,1,Multiply,2,Divide,3)] _BlendMode ("Pattern Blend Mode", Float) = 0
 	}
 
     SubShader
@@ -75,11 +75,11 @@ Shader "GentleShaders/Aurora"
 		#pragma only_renderers d3d11 glcore gles
 		#pragma surface surface FinalityCleanBRDF addshadow fullforwardshadows
 		//local features
-		#pragma shader_feature_local DETAIL_TEXTURE
-		#pragma shader_feature_local CUBE_REFLECTION
-		#pragma shader_feature_local COATING
-		#pragma shader_feature_local ILLUMINATION
-		#pragma shader_feature_local SIMPLE_ROUGHNESS
+		#pragma shader_feature_local _DETAIL_TEXTURE
+		#pragma shader_feature_local _CUBE_REFLECTION
+		#pragma shader_feature_local _PATTERN
+		#pragma shader_feature_local _ILLUMINATION
+		#pragma shader_feature_local _SIMPLE_ROUGHNESS
 
 		uniform fixed _lightingBypass;
 
@@ -93,7 +93,7 @@ Shader "GentleShaders/Aurora"
 			half4 VdotH = dot(viewDir, h);
 			half4 LdotH = dot(lightDir, h);
 
-			float specDist = BeckmannNDF(s.Gloss, NdotH);
+			float specDist = BeckmannNDF(s.Gloss, NdotH) * 0.5;
 			specDist += GGXNDF(s.Gloss, NdotH);
 
 			float shadowDist = WalterEtAlGSF(NdotL, NdotV, s.Gloss);
@@ -123,7 +123,7 @@ Shader "GentleShaders/Aurora"
 			float2 uv_IllumTex;
 			float2 uv_Occlusion;
 			float2 uv_DetailMap;
-			float2 uv_Coating;
+			float2 uv_Pattern;
 			half3 worldPos;
 			half3 worldRefl; INTERNAL_DATA
 			half3 worldNormal;
@@ -139,7 +139,7 @@ Shader "GentleShaders/Aurora"
 		UNITY_DECLARE_TEXCUBE(_CubeReflection);
 		uniform sampler2D _DetailMap;
 		uniform sampler2D _DetailNormal;
-		uniform sampler2D _Coating;
+		uniform sampler2D _Pattern;
 
 		uniform half4 _Color;
 		uniform half4 _SecondaryColor;
@@ -160,19 +160,19 @@ Shader "GentleShaders/Aurora"
 			half4 diffuse = tex2D(_MainTex, i.uv_MainTex.xy);
 			half4 cc = tex2D(_CC, i.uv_MainTex.xy);
 			half4 auroraTex = tex2D(_Aurora, i.uv_MainTex.xy);
-			#ifdef ILLUMINATION
+			#ifdef _ILLUMINATION
 				half illum = auroraTex.b;
 			#endif
-			half4 occlusionTex = auroraTex.a;
+			half occlusionTex = auroraTex.a;
 			float4 normal = tex2D(_BumpMap, i.uv_MainTex.xy);
 			float3 finalNormal = normalize(UnpackNormal(float4(normal.r, 1 - normal.g, normal.b, normal.a)));
-			#ifdef DETAIL_TEXTURE
+			#ifdef _DETAIL_TEXTURE
 				half4 detailTex = tex2D(_DetailMap, i.uv_DetailMap.xy) * _DetailStrength;
 				float4 detailNormal = tex2D(_DetailNormal, i.uv_DetailMap.xy);
 				finalNormal += UnpackNormal(detailNormal);
 			#endif
-			#ifdef COATING
-				half4 coatingTex = tex2D(_Coating, i.uv_Coating.xy);
+			#ifdef _PATTERN
+				half4 patternTex = tex2D(_Pattern, i.uv_Pattern.xy);
 			#endif
 
 			//desaturation
@@ -190,48 +190,47 @@ Shader "GentleShaders/Aurora"
 			half4 tertiary = lerp(black, diffuse * max(0.075, _TertiaryColor), cc.b);
 			half4 passthrough = lerp(diffuse, black, cc.r + cc.g + cc.b);
 
-			//Coating
-			#ifdef COATING
-				primary *= coatingTex.r;
-				secondary *= coatingTex.g;
-				tertiary *= coatingTex.b;
-				passthrough *= coatingTex.a;
+			//Pattern
+			#ifdef _PATTERN
+				primary *= patternTex.r;
+				secondary *= patternTex.g;
+				tertiary *= patternTex.b;
+				passthrough *= patternTex.a;
 			#endif
 
 			//roughness
 			half calculatedRoughness = saturate(diffuse.a + (1.0 * _Roughness));
-			#ifdef SIMPLE_ROUGHNESS
+			#ifdef _SIMPLE_ROUGHNESS
 				calculatedRoughness = _Roughness;
 			#endif
 
 			//others
-			#ifdef ILLUMINATION
+			#ifdef _ILLUMINATION
 				half4 illumination = illum * _IllumColor;
 			#endif
 
 			//finalColor
 			half4 finalColor = primary + secondary + tertiary + passthrough;
 			//detailTex *= calculatedRoughness;
-			#ifdef DETAIL_TEXTURE
+			#ifdef _DETAIL_TEXTURE
 				finalColor *= detailTex;
 			#endif
 
 			//specular calcs
 			half4 finalSpecularColor = stockDiffuse * occlusionTex;
-			#ifdef COATING
-				finalSpecularColor *= lerp(white, coatingTex.r, cc.r);
-				finalSpecularColor *= lerp(white, coatingTex.g, cc.g);
-				finalSpecularColor *= lerp(white, coatingTex.b, cc.b);
-				finalSpecularColor *= lerp(white, coatingTex.a, cc.r + cc.g + cc.b);
+			#ifdef _PATTERN
+				finalSpecularColor *= lerp(white, patternTex.r, cc.r);
+				finalSpecularColor *= lerp(white, patternTex.g, cc.g);
+				finalSpecularColor *= lerp(white, patternTex.b, cc.b);
+				finalSpecularColor *= lerp(white, patternTex.a, cc.r + cc.g + cc.b);
 			#endif
 
 			//reflection probe support
 			half3 reflectDir = WorldReflectionVector(i, finalNormal);
 			half3 boxProjectionDir = BoxProjectedCubemapDirection(reflectDir + 0.001, i.worldPos, unity_SpecCube0_ProbePosition, unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax);
-			half texCubeRoughness = calculatedRoughness;
 
 			//reflectionData
-			Unity_GlossyEnvironmentData envData; envData.roughness = texCubeRoughness; envData.reflUVW = boxProjectionDir;
+			Unity_GlossyEnvironmentData envData; envData.roughness = calculatedRoughness; envData.reflUVW = boxProjectionDir;
 
 			//probe blending
 			half3 skyColor = Unity_GlossyEnvironment(UNITY_PASS_TEXCUBE(unity_SpecCube0), unity_SpecCube0_HDR, envData);
@@ -239,17 +238,14 @@ Shader "GentleShaders/Aurora"
 			skyColor = lerp(skyColor2, skyColor, unity_SpecCube0_BoxMin.w);
 
 			//cubemapped reflection support
-			#ifdef CUBE_REFLECTION
-				half3 cubeColor = UNITY_SAMPLE_TEXCUBE_LOD(_CubeReflection, reflectDir, envData.roughness * UNITY_SPECCUBE_LOD_STEPS).rgb;
-				skyColor = cubeColor;
+			#ifdef _CUBE_REFLECTION
+				skyColor = UNITY_SAMPLE_TEXCUBE_LOD(_CubeReflection, reflectDir, envData.roughness * UNITY_SPECCUBE_LOD_STEPS).rgb;
 			#endif
-			skyColor *= occlusionTex.xyz;
-			skyColor = max(half3(0,0,0), skyColor);
+			skyColor *= occlusionTex;
+			skyColor = max(half3(0,0,0), skyColor * 3);
 
 			//metallic effect
 			half displayMetalProperty = auroraTex.r * _trueMetallic;
-			half3 finalColorHSV = rgb2hsv(finalColor.xyz);
-			half3 skyColorApplication = hsv2rgb(half3(finalColorHSV.r, finalColorHSV.g, Desaturate(finalColor)));
 			skyColor *= lerp(Desaturate(finalColor.xyz), finalColor.xyz, displayMetalProperty);
 			skyColor *= 1 - _lightingBypass;
 
@@ -259,7 +255,7 @@ Shader "GentleShaders/Aurora"
 			o.Specular = finalSpecularColor;
 			o.Gloss = calculatedRoughness;
 			o.Emission = skyColor + (finalColor * _lightingBypass);
-			#ifdef ILLUMINATION
+			#ifdef _ILLUMINATION
 				o.Emission += illumination;
 			#endif
 			o.Alpha = displayMetalProperty;

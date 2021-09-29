@@ -8,7 +8,7 @@ namespace GentleShaders.Aurora
     {
         public static async Task<bool> CheckForUpdates()
         {
-            UnityWebRequest www = UnityWebRequest.Get("http://raw.githubusercontent.com/GentleLeviathan/Aurora-Shader-Suite/main/masterVersion");
+            UnityWebRequest www = UnityWebRequest.Get("https://raw.githubusercontent.com/GentleLeviathan/Aurora-Shader-Suite/main/masterVersion");
             DownloadHandler handler = www.downloadHandler;
             UnityWebRequestAsyncOperation op = www.SendWebRequest();
 
@@ -22,7 +22,7 @@ namespace GentleShaders.Aurora
                 return false;
             }
 
-            return handler.text != AuroraEditor.currentVersion;
+            return !handler.text.Contains(AuroraEditor.currentVersion);
         }
     }
 }

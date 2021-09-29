@@ -15,12 +15,12 @@ namespace GentleShaders.Aurora.Helpers
         /// Material's shader needs to be unlit or contain a float property named "_lightingBypass".
         /// Material's shader also needs to contain a texture property named "_MainTex".
         /// </summary>
-        /// <param name="utilityMat"></param>
+        /// <param name="auroraMat"></param>
         /// <param name="stripLighting"></param>
-        public static void BakeMaterialAsTexture(Material utilityMat, bool stripLighting = true)
+        public static void BakeMaterialAsTexture(Material auroraMat, bool stripLighting = true)
         {
-            UnityEngine.Object asset = utilityMat;
-            Texture2D mainTex = utilityMat.GetTexture("_MainTex") as Texture2D;
+            UnityEngine.Object asset = auroraMat;
+            Texture2D mainTex = auroraMat.GetTexture("_MainTex") as Texture2D;
 
             TextureImporter ti = (TextureImporter)TextureImporter.GetAtPath(AssetDatabase.GetAssetPath(mainTex));
             if (ti)
@@ -37,7 +37,7 @@ namespace GentleShaders.Aurora.Helpers
             }
 
             string savePath = AssetDatabase.GetAssetPath(asset).Replace(".mat", "") + (stripLighting ? "_Baked" : "_Baked_Lit") + ".png";
-            Texture2D final = GenerateAndBake(utilityMat, mainTex.width, mainTex.height, stripLighting, mainTex);
+            Texture2D final = GenerateAndBake(auroraMat, mainTex.width, mainTex.height, stripLighting, mainTex);
 
             File.WriteAllBytes(savePath, final.EncodeToPNG());
             AssetDatabase.Refresh();
@@ -57,19 +57,23 @@ namespace GentleShaders.Aurora.Helpers
             AssetDatabase.Refresh();
         }
 
-        private static Texture2D GenerateAndBake(Material finalityMat, int resX, int resY, bool stripLighting, Texture2D defaultMainTex)
+        private static Texture2D GenerateAndBake(Material auroraMat, int resX, int resY, bool stripLighting, Texture2D defaultMainTex)
         {
             if (stripLighting)
             {
-                finalityMat.SetFloat("_lightingBypass", 1f);
+                auroraMat.SetFloat("_lightingBypass", 1f);
             }
 
             RenderTexture rtTemp = RenderTexture.GetTemporary(resX, resY);
-            Graphics.Blit(null, rtTemp, finalityMat);
-
-            Texture2D bakedTexture = new Texture2D(rtTemp.width, rtTemp.height, TextureFormat.RGBA32, true);
+            Graphics.Blit(null, rtTemp, auroraMat, 0, 0);
             RenderTexture.active = rtTemp;
-            bakedTexture.ReadPixels(new Rect(0f, 0f, rtTemp.width, rtTemp.height), 0, 0, false);
+
+            Texture2D bakedTexture = new Texture2D(resX, resY, TextureFormat.RGBA32, true);
+            bakedTexture.ReadPixels(new Rect(0f, 0f, resX, resY), 0, 0, false);
+            bakedTexture.Apply();
+
+            RenderTexture.active = null;
+
             Color[] bakedTexturePixels = bakedTexture.GetPixels();
             Color[] mainTexPixels = defaultMainTex.GetPixels();
             for(int i = 0; i < bakedTexturePixels.Length; i++)
@@ -79,12 +83,9 @@ namespace GentleShaders.Aurora.Helpers
             bakedTexture.SetPixels(bakedTexturePixels);
             bakedTexture.Apply();
 
-            RenderTexture.active = null;
-            RenderTexture.ReleaseTemporary(rtTemp);
-
             if (stripLighting)
             {
-                finalityMat.SetFloat("_lightingBypass", 0f);
+                auroraMat.SetFloat("_lightingBypass", 0f);
             }
 
             return bakedTexture;

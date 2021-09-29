@@ -44,40 +44,41 @@ SOFTWARE.
 		return dot(inTex.rgb, half3(0.2126, 0.7152, 0.0722));
 	}
 
-	float invLerp(float from, float to, float value){
+	float invLerp(float from, float to, float value)
+	{
 		return (value - from) / (to - from);
 	}
 
-	float remap(float targetFrom, float targetTo, float value){
+	float remap(float targetFrom, float targetTo, float value)
+	{
 		float rel = invLerp(0, 1, value);
 		return lerp(targetFrom, targetTo, rel);
 	}
 
-	float remap(float origFrom, float origTo, float targetFrom, float targetTo, float value){
+	float remap(float origFrom, float origTo, float targetFrom, float targetTo, float value)
+	{
 	  float rel = invLerp(origFrom, origTo, value);
 	  return lerp(targetFrom, targetTo, rel);
 	}
 
-	float clamp01(float _in){
-		if(_in > 1){ _in = 1; }
-		if(_in < 0){ _in = 0; }
-		return _in;
-	}
-
-	half eq(half a, half b){
+	half eq(half a, half b)
+	{
 		return 1.0 - abs(sign(a - b));
 	}
 
-	half gT(half a, half b){
+	half gT(half a, half b)
+	{
 		return max(sign(a - b), 0.0);
 	}
 
-	half lT(half a, half b){
+	half lT(half a, half b)
+	{
 		return max(sign(b - a), 0.0);
 	}
 
 	//Borrowed from https://catlikecoding.com/, thanks!
-	float3 BoxProjection (float3 direction, float3 position, float3 cubemapPosition, float3 boxMin, float3 boxMax){
+	float3 BoxProjection (float3 direction, float3 position, float3 cubemapPosition, float3 boxMin, float3 boxMax)
+	{
 		float3 factors = ((direction > 0 ? boxMax : boxMin) - position) / (direction + 0.0001);
 		float scalar = min(min(factors.x, factors.y), factors.z);
 		return boxMin > 0 ? direction * scalar + (position - cubemapPosition) : direction;
@@ -106,7 +107,7 @@ SOFTWARE.
 
 
 //----------------LIGHTING------------------------------------------
-//BadCompanyUtilityBRDF------------------------
+//BRDF------------------------
 
 	float sqr(float a)
 	{
@@ -159,6 +160,38 @@ SOFTWARE.
 		return NdotL*NdotV/(VdotH*pow(NdotL*NdotV, roughness));
 	}
 
+	float MixFunction(float i, float j, float x)
+	{
+		return  j * x + i * (1.0 - x);
+	}
+
+	float SchlickFresnel(float i)
+	{
+		float x = clamp(1.0-i, 0.0, 1.0);
+		float x2 = x*x;
+		return x2*x2*x;
+	}
+
+	//normal incidence reflection calculation
+	float F0 (float NdotL, float NdotV, float LdotH, float roughness)
+	{
+		float FresnelLight = SchlickFresnel(NdotL);
+		float FresnelView = SchlickFresnel(NdotV);
+		float FresnelDiffuse90 = 0.5 + 2.0 * LdotH*LdotH * roughness;
+		return  MixFunction(1, FresnelDiffuse90, FresnelLight) * MixFunction(1, FresnelDiffuse90, FresnelView);
+	}
+
+	float FN (float NdotV, float LdotH)
+	{
+		float FresnelView = SchlickFresnel(NdotV);
+		float FresnelDiffuse = 1.0 * LdotH*LdotH;
+		return  MixFunction(1, FresnelDiffuse, FresnelView);
+	}
+
+	float3 SchlickFresnelFunction(float3 SpecularColor,float LdotH)
+	{
+		return SpecularColor + (1 - SpecularColor) * SchlickFresnel(LdotH);
+	}
 	
 	float SphericalGFF(float LdotH, float SpecularColor)
 	{	
@@ -181,27 +214,3 @@ SOFTWARE.
 		tangentViewDir = normalize(tangentViewDir);
 		return uv.xy += tangentViewDir.xy * (height * strength);
 	}
-
-
-
-
-	//OLD
-	/*half4 LightingSimpleBRDF_GI (SurfaceOutput s, UnityGIInput data, inout UnityGI gi)
-	{
-		half3 bakedLightmap = half3(0,0,0);
-		#if defined(LIGHTMAP_ON)
-			half4 bakedLightmapTex = UNITY_SAMPLE_TEX2D(unity_Lightmap, data.lightmapUV.xy);
-			bakedLightmap = DecodeLightmap(bakedLightmapTex);
-
-			#ifdef DIRLIGHTMAP_COMBINED
-				fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER (unity_LightmapInd, unity_Lightmap, data.lightmapUV.xy);
-				bakedLightmap += DecodeDirectionalLightmap(bakedLightmap, bakedDirTex, s.Normal);
-				bakedLightmap += gi.indirect.specular;
-			#else
-				#if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
-					bakedLightmap = SubtractMainLightWithRealtimeAttenuationFromLightmap(bakedLightmap, data.atten, bakedLightmapTex, s.Normal);
-				#endif
-			#endif
-		#endif
-		return half4(bakedLightmap, 0);
-	}*/
