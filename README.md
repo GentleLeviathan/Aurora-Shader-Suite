@@ -14,7 +14,6 @@ Includes a set of 'Helper' tools, including:
   * OpenGL to DirectX normal format (and vice-versa)
   * Tool to pack traditional Metallic_Smoothness, Occlusion, Emission, and Curvature textures into the 'Aurora' swizzle format.
   * Material baking (for applying shader color zones, patterns, and depth to a new diffuse texture to be used elsewhere.)
-    Note: This is broken due to an internal change made by Unity in 2019.x and up. Currently searching for a fix or alternative.
 
 And a few additional helpers to enable the use of assets inspired by Microsoft's 'Halo' games.
 Supports armor sets and textures from the following 'Halo' games:
