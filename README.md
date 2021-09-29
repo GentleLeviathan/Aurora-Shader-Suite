@@ -1,5 +1,6 @@
 # Aurora Shader Suite
 Requires Unity 2019.1.x or greater.
+Includes output template for Substance Painter.
 
 A suite of tools and a shader for a personal project. Takes advantage of a texture swizzle ('Aurora') to represent Metallic, Occlusion, Emission, and Curvature.
 
@@ -13,6 +14,7 @@ Includes a set of 'Helper' tools, including:
   * OpenGL to DirectX normal format (and vice-versa)
   * Tool to pack traditional Metallic_Smoothness, Occlusion, Emission, and Curvature textures into the 'Aurora' swizzle format.
   * Material baking (for applying shader color zones, patterns, and depth to a new diffuse texture to be used elsewhere.)
+    Note: This is broken due to an internal change made by Unity in 2019.x and up. Currently searching for a fix or alternative.
 
 And a few additional helpers to enable the use of assets inspired by Microsoft's 'Halo' games.
 Supports armor sets and textures from the following 'Halo' games:
