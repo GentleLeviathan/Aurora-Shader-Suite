@@ -127,7 +127,7 @@ namespace GentleShaders.Aurora.Helpers
 
             GUILayout.BeginHorizontal();
             GUILayout.Space(100f);
-            smoothnessTexture = GUILayout.Toggle(smoothnessTexture, new GUIContent("   Is Smoothness?", "Select this option if your asset's workflow utilizes Smoothness."));
+            smoothnessTexture = GUILayout.Toggle(smoothnessTexture, new GUIContent("   Smoothness Workflow?", "Select this option if your asset's workflow utilizes Smoothness."));
             GUILayout.FlexibleSpace();
             alphaChannelSmoothness = GUILayout.Toggle(alphaChannelSmoothness, new GUIContent("   Read from alpha channel?", "Select this option if the provided texture " +
                 "has the roughness/smoothness in the alpha channel. This is common with 'Metallic_Smoothness' textures."));
@@ -138,7 +138,7 @@ namespace GentleShaders.Aurora.Helpers
 
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Pack!", GUILayout.Width(150f)))
+            if (GUILayout.Button("Pack Diffuse", GUILayout.Width(150f)))
             {
                 if (!PackDiffuse())
                 {
@@ -155,7 +155,7 @@ namespace GentleShaders.Aurora.Helpers
         {
             GUILayout.Label("Aurora Packing", h2);
             GUILayout.Label("This section is for packing textures into an 'Aurora' swizzle.", boldLabels);
-            GUILayout.Label("Assign a diffuse texture above to auto calculate a more-accurate save path. ('DiffuseName_Aurora.png')", common);
+            GUILayout.Label("Assign a diffuse texture above to auto calculate a more-accurate save path. ('DiffuseName_Aurora.png')\nOtherwise, it will be saved in the same location as the first provided texture.", common);
 
             GUILayout.Space(6f);
 
@@ -197,7 +197,7 @@ namespace GentleShaders.Aurora.Helpers
 
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Pack!", GUILayout.Width(150f)))
+            if (GUILayout.Button("Pack Aurora", GUILayout.Width(150f)))
             {
                 if (!PackEtc())
                 {

@@ -116,7 +116,7 @@ namespace GentleShaders.Aurora
             GUILayout.Space(4f);
             GUILayout.Label("Aurora?", boldLabels);
             GUILayout.Space(4f);
-            GUILayout.Label("'Aurora' is the name of the texture swizzle utilized by the shader to replace traditional Metallic_Smoothness, Occlusion, and Emission textures.", common);
+            GUILayout.Label("'Aurora' is the name of the texture swizzle utilized by the shader to replace traditional Metallic_Smoothness, Occlusion, Emission, and Curvature textures.", common);
             GUILayout.Label("This decreases video memory usage, build file size, and provides a slightly faster workflow.", common);
             GUILayout.Space(4f);
 
@@ -129,11 +129,11 @@ namespace GentleShaders.Aurora
         {
             GUILayout.Label("What is the purpose of the Helper Utilities?", boldLabels);
             GUILayout.Space(4f);
-            GUILayout.Label("The Helper Utilities are a suite of tools to convert 'Halo' textures into the format that the shader is designed for.", common);
+            GUILayout.Label("The Helper Utilities are a suite of tools to assist in the conversion of existing textures into the Aurora format.", common);
             GUILayout.Label("You will find a short description of each helper utility by hovering over their buttons when inspecting a Aurora material.", common);
             GUILayout.Space(4f);
             GUILayout.Label("Additional helper utilities will be implemented as the need for them arises.", common);
-            GUILayout.Label("If you would like to request a helper, please do so!", common);
+            GUILayout.Label("If you would like to request a helper, please do so by submitting an issue with the label 'enhancement'!", common);
         }
 
         public static void OpenRepository()

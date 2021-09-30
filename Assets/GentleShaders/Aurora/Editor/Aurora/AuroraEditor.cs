@@ -15,7 +15,7 @@ namespace GentleShaders.Aurora
     [CanEditMultipleObjects]
     public class AuroraEditor : ShaderGUI
     {
-        public static string currentVersion = "AR1.3";
+        public static string currentVersion = "AR2.0";
 
         #region Properties and Fields
 
@@ -44,17 +44,17 @@ namespace GentleShaders.Aurora
         MaterialProperty detailStrength;
 
         private Texture2D header;
-        private bool texFound = false;
-        private bool performedUpdateCheck = false;
-        private bool gotProperties = false;
+        private bool texFound;
+        private bool performedUpdateCheck;
+        private bool gotProperties;
 
-        private bool colorTexToggle = false;
-        private bool simpleRoughnessToggle = false;
-        private bool alphaRoughnessToggle = false;
-        private bool bypassLighting = true;
-        private bool showAurora = false;
-        private bool showAltTextures = false;
-        private bool showHelpers = false;
+        private bool colorTexToggle;
+        private bool simpleRoughnessToggle;
+        private bool alphaRoughnessToggle;
+        private bool bypassLighting;
+        private bool showAurora;
+        private bool showAltTextures;
+        private bool showHelpers;
         private bool updateReady;
 
         #endregion
@@ -162,7 +162,11 @@ namespace GentleShaders.Aurora
         private void DisplayCustomGUI(MaterialEditor materialEditor, Material target)
         {
             ReadyForUpdate();
-            GUILayout.Label(header, GUILayout.MinWidth(240), GUILayout.MaxWidth(1000), GUILayout.MinHeight(190), GUILayout.MaxHeight(300));
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(header, GUILayout.MinWidth(240), GUILayout.MaxWidth(445), GUILayout.MinHeight(50), GUILayout.MaxHeight(200));
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
 
             EditorGUI.BeginChangeCheck();
 
@@ -173,7 +177,7 @@ namespace GentleShaders.Aurora
             GUILayout.Label("Main Textures", EditorStyles.boldLabel);
             materialEditor.TextureProperty(mainTex, "Diffuse", false);
             //desaturation toggle
-            colorTexToggle = GUILayout.Toggle(colorTexture.floatValue > 0 ? true : false, MakeLabel(" Color Texture?", "This checkbox desaturates the Diffuse texture, eliminating existing colors to improve color accuracy."));
+            colorTexToggle = GUILayout.Toggle(colorTexture.floatValue > 0 ? true : false, MakeLabel(" Desaturate?", "This checkbox desaturates the Diffuse texture, eliminating existing colors to improve color control accuracy."));
 
             materialEditor.TextureProperty(cc, "Color Control (CC)", false);
             materialEditor.TextureProperty(normal, "Normal Map (DirectX)", false);
@@ -322,9 +326,9 @@ namespace GentleShaders.Aurora
                 if (GUILayout.Button(new GUIContent("Bake Material", "Bakes the material's output into a texture, optionally including environment lighting."), GUILayout.Width(250f)))
                 {
                     //run the baking process
-                    AuroraBaker.BakeMaterialAsTexture((Material)materialEditor.target, bypassLighting);
+                    AuroraBaker.BakeMaterialAsTexture((Material)materialEditor.target, !bypassLighting);
                 }
-                bypassLighting = GUILayout.Toggle(bypassLighting, MakeLabel("Lighting Bypass", "Bypasses the light model of the material, making it unlit."));
+                bypassLighting = GUILayout.Toggle(bypassLighting, MakeLabel("Include Lighting?", "Bake the current environment sample and point/directional lighting into the texture."));
                 GUILayout.EndHorizontal();
                 GUILayout.Space(6f);
             }
