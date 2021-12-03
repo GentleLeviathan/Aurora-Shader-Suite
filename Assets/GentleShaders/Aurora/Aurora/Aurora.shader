@@ -35,6 +35,8 @@ Shader "GentleShaders/Aurora"
 		[Normal]_BumpMap("Normal Map", 2D) = "bump" {}
 		_Aurora("Aurora Texture", 2D) = "black" {}
 		_Pattern("Pattern Texture", 2D) = "white" {}
+		_Decals("Decal Texture (UV2)", 2D) = "black" {}
+		_DecalNormal("Decal Normal (UV2)", 2D) = "bump" {}
 
 		//Colors
 		_Color("Color", Color) = (1,0,0,0)
@@ -80,6 +82,7 @@ Shader "GentleShaders/Aurora"
 		#pragma shader_feature_local _PATTERN
 		#pragma shader_feature_local _ILLUMINATION
 		#pragma shader_feature_local _SIMPLE_ROUGHNESS
+		#pragma shader_feature_local _DECALS
 
 		uniform fixed _lightingBypass;
 
@@ -117,6 +120,7 @@ Shader "GentleShaders/Aurora"
 		struct Input
 		{
 			float2 uv_MainTex;
+			float2 uv2_Decals;
 			float2 uv_BumpMap;
 			float2 uv_MetallicTex;
 			float2 uv_RoughnessTex;
@@ -133,6 +137,8 @@ Shader "GentleShaders/Aurora"
 		};
 
         uniform sampler2D _MainTex;
+		uniform sampler2D _Decals;
+		uniform sampler2D _DecalNormal;
 		uniform sampler2D _BumpMap;
 		uniform sampler2D _CC;
 		uniform sampler2D _Aurora;
@@ -214,6 +220,12 @@ Shader "GentleShaders/Aurora"
 			//detailTex *= calculatedRoughness;
 			#ifdef _DETAIL_TEXTURE
 				finalColor *= detailTex;
+			#endif
+			#ifdef _DECALS
+				half4 decals = tex2D(_Decals, i.uv2_Decals.xy);
+				half3 decalsNormal = UnpackNormal(tex2D(_DecalNormal, i.uv2_Decals.xy));
+				finalColor = lerp(finalColor, half4(decals.rgb, finalColor.a), decals.a);
+				finalNormal += normalize(decalsNormal);
 			#endif
 
 			//specular calcs

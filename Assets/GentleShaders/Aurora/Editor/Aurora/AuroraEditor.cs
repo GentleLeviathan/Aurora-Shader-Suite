@@ -15,12 +15,14 @@ namespace GentleShaders.Aurora
     [CanEditMultipleObjects]
     public class AuroraEditor : ShaderGUI
     {
-        public static string currentVersion = "AR2.0";
+        public static string currentVersion = "AR2.1";
 
         #region Properties and Fields
 
         //properties
         MaterialProperty mainTex;
+        MaterialProperty decals;
+        MaterialProperty decalNormal;
         MaterialProperty cc;
         MaterialProperty auroraTex;
         MaterialProperty pattern;
@@ -129,6 +131,8 @@ namespace GentleShaders.Aurora
             //-----------Textures
 
             mainTex = ShaderGUI.FindProperty("_MainTex", properties);
+            decals = ShaderGUI.FindProperty("_Decals", properties);
+            decalNormal = ShaderGUI.FindProperty("_DecalNormal", properties);
             cc = ShaderGUI.FindProperty("_CC", properties);
             pattern = ShaderGUI.FindProperty("_Pattern", properties);
             auroraTex = ShaderGUI.FindProperty("_Aurora", properties);
@@ -256,9 +260,13 @@ namespace GentleShaders.Aurora
                 GUILayout.Space(4f);
                 GUILayout.Label("Custom Textures", EditorStyles.boldLabel);
                 materialEditor.TextureProperty(reflectCube, "Reflection Cubemap");
-                GUILayout.Space(4f);
+                GUILayout.Space(10f);
+                GUILayout.Label("Decal Textures (UV2)", EditorStyles.boldLabel);
+                materialEditor.TextureProperty(decals, "Decals (RGB+A)", false);
+                materialEditor.TextureProperty(decalNormal, "Decal Normal (RGB+A)", false);
 
-                GUILayout.Space(4f);
+                GUILayout.Space(10f);
+                GUILayout.Label("Detail Textures (UV)", EditorStyles.boldLabel);
                 materialEditor.TextureProperty(detailTex, "Detail Map", false);
                 materialEditor.TextureProperty(detailNormal, "Detail Normal (OpenGL)", false);
                 materialEditor.RangeProperty(detailStrength, "Strength");
@@ -392,6 +400,8 @@ namespace GentleShaders.Aurora
             if (simpleRoughnessToggle) { mat.EnableKeyword("_SIMPLE_ROUGHNESS"); } else { mat.DisableKeyword("_SIMPLE_ROUGHNESS"); }
 
             if (illuminationColor.colorValue != Color.black) { mat.EnableKeyword("_ILLUMINATION"); } else { mat.DisableKeyword("_ILLUMINATION"); }
+
+            if (decals.textureValue != null || decalNormal.textureValue != null) { mat.EnableKeyword("_DECALS"); } else { mat.DisableKeyword("_DECALS"); }
         }
 
         private void ApplyToggles(Material mat)
