@@ -9,6 +9,7 @@ Unique features include:
   * Per color mask channel pattern support (useful for camouflage or fabric)
   * Color 'depth' for increasing texture contrast via slider
   * Detail diffuse and normal with strength slider and tiling/offset vector
+  * Decal textures applied via mesh UV2 for text/image clarity
 
 Includes a set of 'Helper' tools, including:
   * OpenGL to DirectX normal format (and vice-versa)
