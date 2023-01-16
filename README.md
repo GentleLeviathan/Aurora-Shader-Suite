@@ -10,6 +10,7 @@ A suite of tools and a shader for a personal project. Takes advantage of a textu
   * Color 'depth' for increasing texture contrast via slider
   * Detail diffuse and normal with strength slider and tiling/offset vector
   * Decal textures applied via mesh UV2 for text/image clarity
+  * 'Rave' section with 4 channel HDR Color emission + a scrolling mask texture.
 
 ### Includes a set of 'Helper' tools, including:
   * OpenGL to DirectX normal format (and vice-versa)
@@ -28,9 +29,16 @@ Supports armor sets and textures from the following 'Halo' games:
 * Halo 5: Forge
 
 ## Substance Painter - Workflow Changes
-  * Color Control (CC) textures are generated from User0, User1, and User2 channels
+  * Color Control (CC) textures are generated from User0, User1, User2, and User3 channels
   * Height channel will be exported as normal information into the normal map
   * Be sure to bake curvature maps
+  
+  
+## Rave CC + Mask
+Rave CC is a 4 channel texture with an HDR color property for each channel.
+Rave Mask is a 4 channel texture which is multiplied by the Rave CC color result to modify it.
+The Rave section has two Vector4 properties which control the UV scrolling applied to the Rave Mask texture channels.
+If [VRC AudioLink](https://github.com/llealloo/vrc-udon-audio-link) is installed in the project, the option to enable it will appear at the bottom of the rave section.
 
 
 This suite is licensed under the MIT License.
