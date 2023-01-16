@@ -3,9 +3,11 @@ using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 using GentleShaders.Aurora.Helpers;
+using UnityEditor.PackageManager;
+using System.Linq;
 
 /// <summary>
-/// Aurora Shader Editor + UI. Contains a large number of options, features, and holds the interface for the included texture helpers.
+/// Aurora Shader Editor + UI. Contains a large number of options and features, and holds the interface for the included texture helpers.
 /// Access it by creating a material with the Aurora shader applied.
 /// WIP!
 /// </summary>
@@ -15,7 +17,7 @@ namespace GentleShaders.Aurora
     [CanEditMultipleObjects]
     public class AuroraEditor : ShaderGUI
     {
-        public static string currentVersion = "AR2.1";
+        public static string currentVersion = "AR2.2";
 
         #region Properties and Fields
 
@@ -45,10 +47,20 @@ namespace GentleShaders.Aurora
         MaterialProperty detailNormal;
         MaterialProperty detailStrength;
 
+        MaterialProperty raveCC;
+        MaterialProperty raveMask;
+        MaterialProperty raveColor;
+        MaterialProperty raveSecondary;
+        MaterialProperty raveTertiary;
+        MaterialProperty raveQuaternary;
+        MaterialProperty raveRG;
+        MaterialProperty raveBA;
+
         private Texture2D header;
         private bool texFound;
         private bool performedUpdateCheck;
         private bool gotProperties;
+        private bool supportsAudioLink;
 
         private bool colorTexToggle;
         private bool simpleRoughnessToggle;
@@ -56,8 +68,13 @@ namespace GentleShaders.Aurora
         private bool bypassLighting;
         private bool showAurora;
         private bool showAltTextures;
+        private bool showRave;
+        private bool useAudioLink;
+        private bool audioLinkCheckComplete;
         private bool showHelpers;
         private bool updateReady;
+
+        private UnityEditor.PackageManager.Requests.ListRequest packageManagerListRequest;
 
         #endregion
 
@@ -75,10 +92,35 @@ namespace GentleShaders.Aurora
             updateReady = await AuroraUpdateChecker.CheckForUpdates();
         }
 
-        private void OnClosed()
+        #region AudioLinkCheck
+
+        private void CheckForAudioLink()
         {
-            texFound = false;
-            performedUpdateCheck = false;
+            packageManagerListRequest = Client.List();
+            EditorApplication.update += AudioLinkCheckUpdate;
+        }
+
+        private void AudioLinkCheckUpdate()
+        {
+            if (!packageManagerListRequest.IsCompleted) { return; }
+            if(packageManagerListRequest.Status != StatusCode.Success) { Debug.LogError("AuroraEditor: Could not check package manager. " + packageManagerListRequest.Error); return; }
+
+            UnityEditor.PackageManager.PackageInfo info = packageManagerListRequest.Result.FirstOrDefault(p => p.name == "com.llealloo.audiolink");
+            if (info != null)
+            {
+                supportsAudioLink = true;
+            }
+
+            audioLinkCheckComplete = true;
+            EditorApplication.update -= AudioLinkCheckUpdate;
+        }
+
+        #endregion
+
+        public override void OnClosed(Material material)
+        {
+            EditorApplication.update -= AudioLinkCheckUpdate;
+            base.OnClosed(material);
         }
 
         private void GetBooleanValues(Material mat)
@@ -88,8 +130,13 @@ namespace GentleShaders.Aurora
                 showAltTextures = true;
             }
 
+            if(raveCC.textureValue != null)
+            {
+                showRave = true;
+            }
+
             simpleRoughnessToggle = mat.IsKeywordEnabled("_SIMPLE_ROUGHNESS");
-           
+            useAudioLink = mat.IsKeywordEnabled("_VRCAUDIOLINK");
         }
 
         #endregion
@@ -105,16 +152,21 @@ namespace GentleShaders.Aurora
 
             Material target = materialEditor.target as Material;
 
-            //----------------------------------Properties-----------------------------------------
-            try
+            if (!gotProperties)
             {
-                GetProperties(materialEditor, properties, target);
-                gotProperties = true;
-            }
-            catch (NullReferenceException e)
-            {
-                Debug.LogError("AuroraEditor: " + e.Message);
-                return;
+                //----------------------------------Properties-----------------------------------------
+                try
+                {
+                    GetProperties(materialEditor, properties, target);
+                    gotProperties = true;
+
+                    CheckForAudioLink();
+                }
+                catch (NullReferenceException e)
+                {
+                    Debug.LogError("AuroraEditor: " + e.Message);
+                    return;
+                }
             }
 
             if (gotProperties)
@@ -161,6 +213,16 @@ namespace GentleShaders.Aurora
             detailTex = ShaderGUI.FindProperty("_DetailMap", properties);
             detailNormal = ShaderGUI.FindProperty("_DetailNormal", properties);
             detailStrength = ShaderGUI.FindProperty("_DetailStrength", properties);
+
+            //-----------Rave Section
+            raveCC = ShaderGUI.FindProperty("_RaveCC", properties);
+            raveMask = ShaderGUI.FindProperty("_RaveMask", properties);
+            raveColor = ShaderGUI.FindProperty("_RaveColor", properties);
+            raveSecondary = ShaderGUI.FindProperty("_RaveSecondaryColor", properties);
+            raveTertiary = ShaderGUI.FindProperty("_RaveTertiaryColor", properties);
+            raveQuaternary = ShaderGUI.FindProperty("_RaveQuaternaryColor", properties);
+            raveRG = ShaderGUI.FindProperty("_RaveRG", properties);
+            raveBA = ShaderGUI.FindProperty("_RaveBA", properties);
         }
 
         private void DisplayCustomGUI(MaterialEditor materialEditor, Material target)
@@ -271,6 +333,59 @@ namespace GentleShaders.Aurora
                 materialEditor.TextureProperty(detailNormal, "Detail Normal (OpenGL)", false);
                 materialEditor.RangeProperty(detailStrength, "Strength");
                 materialEditor.TextureScaleOffsetProperty(detailTex);
+            }
+
+            //Rave Section
+            if (GUILayout.Button(MakeLabel("Show Rave Section", "Displays the 'rave' section for additional emission. This will always be visible if there are filled properties.")))
+            {
+                showRave = !showRave;
+            }
+            if (showRave)
+            {
+                GUILayout.Space(4f);
+                materialEditor.TextureProperty(raveCC, "Rave CC");
+                materialEditor.TextureProperty(raveMask, "Rave Mask");
+                GUILayout.Space(10f);
+                materialEditor.ColorProperty(raveColor, "Rave Color (HDR)");
+                materialEditor.ColorProperty(raveSecondary, "Rave Secondary Color (HDR)");
+                materialEditor.ColorProperty(raveTertiary, "Rave Tertiary Color (HDR)");
+                materialEditor.ColorProperty(raveQuaternary, "Rave Quaternary Color (HDR)");
+                GUILayout.Space(10f);
+                materialEditor.VectorProperty(raveRG, "Rave Scroll R+G");
+                materialEditor.VectorProperty(raveBA, "Rave Scroll B+A");
+
+                if (audioLinkCheckComplete)
+                {
+                    if (supportsAudioLink)
+                    {
+                        GUILayout.Space(10f);
+                        useAudioLink = GUILayout.Toggle(useAudioLink, new GUIContent("Use VRC AudioLink?", "Check if you would like the rave effect's strength to be modified by llealloo's 'VRC Udon Audio Link'"));
+                    }
+                    else
+                    {
+                        if (useAudioLink)
+                        {
+                            GUILayout.Space(10f);
+                            GUILayout.Label("Material is set to use AudioLink but AudioLink is not installed!");
+                            GUILayout.Label("Either download it or disable AudioLink.");
+                            if (GUILayout.Button(MakeLabel("Download AudioLink")))
+                            {
+                                Application.OpenURL("https://github.com/llealloo/vrc-udon-audio-link/releases");
+                            }
+                            if (GUILayout.Button(MakeLabel("Disable AudioLink")))
+                            {
+                                useAudioLink = false;
+                                ((Material)materialEditor.target).DisableKeyword("_VRCAUDIOLINK");
+                            }
+                            GUILayout.Space(10f);
+                        }
+                    }
+                }
+                else
+                {
+                    GUILayout.Space(10f);
+                    GUILayout.Label("Checking for AudioLink support...");
+                }
             }
 
             #region Helper Drawers
@@ -393,7 +508,7 @@ namespace GentleShaders.Aurora
         {
             if (reflectCube.textureValue) { mat.EnableKeyword("_CUBE_REFLECTION"); } else { mat.DisableKeyword("_CUBE_REFLECTION"); }
 
-            if (detailNormal.textureValue || detailTex.textureValue){ mat.EnableKeyword("_DETAIL_TEXTURE"); } else { mat.DisableKeyword("_DETAIL_TEXTURE"); }
+            if (detailNormal.textureValue || detailTex.textureValue) { mat.EnableKeyword("_DETAIL_TEXTURE"); } else { mat.DisableKeyword("_DETAIL_TEXTURE"); }
 
             if (pattern.textureValue) { mat.EnableKeyword("_PATTERN"); } else { mat.DisableKeyword("_PATTERN"); }
 
@@ -402,6 +517,13 @@ namespace GentleShaders.Aurora
             if (illuminationColor.colorValue != Color.black) { mat.EnableKeyword("_ILLUMINATION"); } else { mat.DisableKeyword("_ILLUMINATION"); }
 
             if (decals.textureValue != null || decalNormal.textureValue != null) { mat.EnableKeyword("_DECALS"); } else { mat.DisableKeyword("_DECALS"); }
+
+            if (raveCC.textureValue != null) { mat.EnableKeyword("_RAVE"); } else { mat.DisableKeyword("_RAVE"); }
+
+
+            //Only if the project supports audio link which is determined by checking the PackageManager's list of dependencies
+            if (!supportsAudioLink) { return; }
+            if (useAudioLink) { mat.EnableKeyword("_VRCAUDIOLINK"); } else {  mat.DisableKeyword("_VRCAUDIOLINK"); }
         }
 
         private void ApplyToggles(Material mat)

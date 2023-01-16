@@ -57,6 +57,17 @@ Shader "GentleShaders/Aurora"
 		_DetailMap("Detail Map", 2D) = "white" {}
 		_DetailNormal("Detail Normal", 2D) = "bump" {}
 
+		//Rave Section
+		_RaveCC("Rave CC (RGBA)", 2D) = "black" {}
+		[HDR]_RaveColor("Rave Color", Color) = (1,0,0,0)
+		[HDR]_RaveSecondaryColor("Rave Secondary Color", Color) = (0,1,0,0)
+		[HDR]_RaveTertiaryColor("Rave Tertiary Color", Color) = (1,1,1,1)
+		[HDR]_RaveQuaternaryColor("Rave Quaternary Color", Color) = (1,1,1,1)
+
+		_RaveMask("Rave Mask (RGBA)", 2D) = "white" {}
+		_RaveRG("Rave Scroll R+G", Vector) = (1,1,1,1)
+		_RaveBA("Rave Scroll B+A", Vector) = (1,1,1,1)
+
 		//Alt Toggles
 		_DetailStrength("Detail Map Strength", Range(0, 2)) = 0.5
 		_lightingBypass("bypassLighting", Int) = 0
@@ -83,6 +94,12 @@ Shader "GentleShaders/Aurora"
 		#pragma shader_feature_local _ILLUMINATION
 		#pragma shader_feature_local _SIMPLE_ROUGHNESS
 		#pragma shader_feature_local _DECALS
+		#pragma shader_feature_local _RAVE
+		#pragma shader_feature_local _VRCAUDIOLINK
+
+		#ifdef _VRCAUDIOLINK
+			#include "Packages/com.llealloo.audiolink/Runtime/Shaders/AudioLink.cginc"
+		#endif
 
 		uniform fixed _lightingBypass;
 
@@ -137,15 +154,36 @@ Shader "GentleShaders/Aurora"
 		};
 
         uniform sampler2D _MainTex;
-		uniform sampler2D _Decals;
-		uniform sampler2D _DecalNormal;
+
+		#ifdef _DECALS
+			uniform sampler2D _Decals;
+			uniform sampler2D _DecalNormal;
+		#endif
+
 		uniform sampler2D _BumpMap;
 		uniform sampler2D _CC;
 		uniform sampler2D _Aurora;
 		UNITY_DECLARE_TEXCUBE(_CubeReflection);
-		uniform sampler2D _DetailMap;
-		uniform sampler2D _DetailNormal;
-		uniform sampler2D _Pattern;
+
+		#ifdef _DETAIL_TEXTURE
+			uniform sampler2D _DetailMap;
+			uniform sampler2D _DetailNormal;
+		#endif
+
+		#ifdef _PATTERN
+			uniform sampler2D _Pattern;
+		#endif
+
+		#ifdef _RAVE
+			uniform sampler2D _RaveCC;
+			uniform sampler2D _RaveMask;
+			uniform half4 _RaveColor;
+			uniform half4 _RaveSecondaryColor;
+			uniform half4 _RaveTertiaryColor;
+			uniform half4 _RaveQuaternaryColor;
+			uniform half4 _RaveRG;
+			uniform half4 _RaveBA;
+		#endif
 
 		uniform half4 _Color;
 		uniform half4 _SecondaryColor;
@@ -261,6 +299,38 @@ Shader "GentleShaders/Aurora"
 			skyColor *= lerp(Desaturate(finalColor.xyz), finalColor.xyz, displayMetalProperty);
 			skyColor *= 1 - _lightingBypass;
 
+			//rave section
+			#ifdef _RAVE
+				half4 raveColor = black;
+				half4 raveCC = tex2D(_RaveCC, i.uv_MainTex);
+				half raveR = tex2D(_RaveMask, i.uv_MainTex + half2(_Time.x * _RaveRG.r, _Time.x * _RaveRG.g)).r;
+				half raveG = tex2D(_RaveMask, i.uv_MainTex + half2(_Time.x * _RaveRG.b, _Time.x * _RaveRG.a)).g;
+				half raveB = tex2D(_RaveMask, i.uv_MainTex + half2(_Time.x * _RaveBA.r, _Time.x * _RaveBA.g)).b;
+				half raveA = tex2D(_RaveMask, i.uv_MainTex + half2(_Time.x * _RaveBA.b, _Time.x * _RaveBA.a)).a;
+
+				#ifdef _VRCAUDIOLINK
+					half4 audioLink = AudioLinkData(ALPASS_AUDIOLINK + int2(0, i.uv_MainTex.y));
+					raveR = audioLink.r;
+
+					raveG *= 0.75;
+					raveG += audioLink.g * 0.25;
+					raveG = saturate(raveG);
+					
+					raveB *= 0.75;
+					raveB += audioLink.b * 0.25;
+					raveB = saturate(raveB);
+
+					raveA *= 0.75;
+					raveA += audioLink.r * 0.25;
+					raveA = saturate(raveA);
+				#endif
+
+				raveColor += half4(raveCC.r, raveCC.r, raveCC.r, 1) * _RaveColor * raveR;
+				raveColor += half4(raveCC.g, raveCC.g, raveCC.g, 1) * _RaveSecondaryColor * raveG;
+				raveColor += half4(raveCC.b, raveCC.b, raveCC.b, 1) * _RaveTertiaryColor * raveB;
+				raveColor += half4(raveCC.a, raveCC.a, raveCC.a, 1) * _RaveQuaternaryColor * raveA;
+			#endif
+
 			//out
 			o.Albedo = finalColor * (1.001 - (displayMetalProperty));
 			o.Normal = finalNormal;
@@ -269,6 +339,9 @@ Shader "GentleShaders/Aurora"
 			o.Emission = skyColor + (finalColor * _lightingBypass);
 			#ifdef _ILLUMINATION
 				o.Emission += illumination;
+			#endif
+			#ifdef _RAVE
+				o.Emission += raveColor;
 			#endif
 			o.Alpha = displayMetalProperty;
 		}
