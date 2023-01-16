@@ -29,7 +29,7 @@ Supports armor sets and textures from the following 'Halo' games:
 * Halo 5: Forge
 
 ## Substance Painter - Workflow Changes
-  * Color Control (CC) textures are generated from User0, User1, and User2 channels
+  * Color Control (CC) textures are generated from User0, User1, User2, and User3 channels
   * Height channel will be exported as normal information into the normal map
   * Be sure to bake curvature maps
   
