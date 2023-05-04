@@ -2,7 +2,7 @@
 Requires Unity 2019.1.x or greater.
 Includes output template for Substance Painter.
 
-A suite of tools and a shader for a personal project. Takes advantage of a texture swizzle ('Aurora') to represent Metallic, Occlusion, Emission, and Curvature.
+A suite of tools and a shader for a personal project. Takes advantage of a texture swizzle ('Aurora') to represent Metallic, Roughness, Illumination (single channel emission), and Occlusion.
 AR3.0 has made significant changes to the Aurora shader. The new A3 swizzle *must* be utilized.
 
 A helper to upgrade existing Aurora A2 textures to the A3 swizzle will be included at a later time.
