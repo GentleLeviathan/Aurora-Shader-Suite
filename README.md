@@ -18,7 +18,7 @@ New lighting model is energy conserving (Advanced options allow modification to 
   * Decal textures applied via mesh UV2 for text/image clarity
   * 'Rave' section with 4 channel HDR Color emission + a scrolling mask texture. (AudioLink supported)
   
-### UDIM Support
+### UDIM=5 Support
   * Supports up to 5 unique texture sets, each with their own Diffuse, Normal, CC, Aurora, and Pattern textures!
   * Texture sets are tied to keywords, keeping the shader performant
   * Each texture set gets it's own 1.0 range on the U-dimension. (see image below)
