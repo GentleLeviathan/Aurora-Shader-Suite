@@ -32,7 +32,7 @@ namespace GentleShaders.Aurora.Helpers
             }
             else
             {
-                Debug.LogError("FinalityBaker: Could not retrieve main texture from asset database!");
+                Debug.LogError("AuroraBaker: Could not retrieve main texture from asset database!");
                 return;
             }
 

@@ -1,41 +1,64 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using System.IO;
-using System.Collections.Generic;
+using GentleShaders.Aurora.Common;
+using System;
 
 namespace GentleShaders.Aurora.Helpers
 {
     /// <summary>
-    /// Aurora Shader included helper. Packs metallic, occlusion, illumination, curvature textures into an Aurora swizzle texture.
+    /// Aurora Shader included helper. Packs metallic, roughness, illumination, and occlusion textures into an Aurora A3 swizzle texture.
     /// WIP!
     /// </summary>
     public class AuroraPacker : EditorWindow
     {
         private static AuroraPacker window;
         private bool setup = false;
+        private Vector2 scrollPos;
 
-        private bool smoothnessTexture;
-        private bool alphaChannelSmoothness;
+        private TextureChannels metallicChannel = TextureChannels.Red;
+        private SurfaceFinishWorkflow surfaceFinishWorkflow = SurfaceFinishWorkflow.Roughness;
+        private TextureChannels surfaceFinishChannel = TextureChannels.Red;
+        private TextureChannels illuminationChannel = TextureChannels.Red;
+        private TextureChannels occlusionChannel = TextureChannels.Green;
+
+        private NormalMapFormat normalMapFormat = NormalMapFormat.OpenGL;
 
         private GUIStyle h1;
         private GUIStyle h2;
+        private GUIStyle h3;
         private GUIStyle boldLabels;
         private GUIStyle common;
 
         private Texture2D diffuseTex;
-        private Texture2D roughnessTex;
 
         private Texture2D metallicTex;
         private Texture2D illuminationTex;
+        private Texture2D roughnessTex;
         private Texture2D occlusionTex;
-        private Texture2D curvatureTex;
+
+        private Texture2D normalMap;
 
         public static void Init()
         {
             window = (AuroraPacker)EditorWindow.GetWindow(typeof(AuroraPacker));
-            window.titleContent = new GUIContent("Finality - Packer");
-            window.minSize = new Vector2(450f, 600f);
+            window.titleContent = new GUIContent("Aurora - A3 Packer");
+            window.minSize = new Vector2(480f, 600f);
             window.Show();
+        }
+
+        public static void Init(Texture2D diffuse)
+        {
+            window = (AuroraPacker)EditorWindow.GetWindow(typeof(AuroraPacker));
+            window.titleContent = new GUIContent("Aurora - A3 Packer");
+            window.minSize = new Vector2(480f, 600f);
+            window.ShowWithDiffuse(diffuse);
+        }
+
+        public void ShowWithDiffuse(Texture2D diffuse)
+        {
+            this.Show();
+            diffuseTex = diffuse;
         }
 
         private void OnGUI()
@@ -43,8 +66,10 @@ namespace GentleShaders.Aurora.Helpers
             if (!setup) { SetupStyles(); }
 
             DrawHeader();
-            DrawDiffuseRoughness();
-            DrawEtc();
+            scrollPos = GUILayout.BeginScrollView(scrollPos);
+            DrawAuroraPacker();
+            DrawNormalConversion();
+            GUILayout.EndScrollView();
         }
 
         private void SetupStyles()
@@ -65,6 +90,15 @@ namespace GentleShaders.Aurora.Helpers
             h2.fontSize = 16;
             h2.padding = new RectOffset(0, 0, 10, 10);
             h2.normal.textColor = text;
+
+            //header3
+            text = new Color(0.8f, 0.8f, 0.8f);
+            h3 = new GUIStyle();
+            h3.alignment = TextAnchor.MiddleCenter;
+            h3.fontStyle = FontStyle.Bold;
+            h3.fontSize = 12;
+            h3.padding = new RectOffset(0, 0, 10, 10);
+            h3.normal.textColor = text;
 
 
             //boldLabels
@@ -89,7 +123,7 @@ namespace GentleShaders.Aurora.Helpers
 
         private void DrawHeader()
         {
-            GUILayout.Label("Finality Aurora Packer", h1);
+            GUILayout.Label("Aurora Packer", h1);
 
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
@@ -100,25 +134,44 @@ namespace GentleShaders.Aurora.Helpers
             GUILayout.Space(10f);
         }
 
-        private void DrawDiffuseRoughness()
+        private void DrawAuroraPacker()
         {
-            GUILayout.Label("Diffuse + Roughness", h2);
-            GUILayout.Label("This section is for packing roughness into your diffuse's alpha channel. It may be skipped if that is already the case.", boldLabels);
+            GUILayout.Label("Aurora A3 Packing", h2);
+            GUILayout.Label("This section is for packing textures into an 'Aurora A3' swizzle.", boldLabels);
+            GUILayout.Label("Assign a diffuse texture below to auto calculate a more-accurate save path. ('DiffuseName_Aurora_A3_Packed.png')\nOtherwise, it will be saved in the same location as the last provided texture.", common);
 
             GUILayout.Space(6f);
 
             GUILayout.BeginHorizontal();
             GUILayout.Space(40f);
-            GUILayout.Label("Diffuse", common);
+            GUILayout.Label("Diffuse (Save Path Calculation) (Optional)", common);
             GUILayout.FlexibleSpace();
             diffuseTex = (Texture2D)EditorGUILayout.ObjectField(diffuseTex, typeof(Texture2D), false);
             GUILayout.EndHorizontal();
 
-            GUILayout.Space(4f);
+            GUILayout.Space(20f);
 
             GUILayout.BeginHorizontal();
             GUILayout.Space(40f);
-            GUILayout.Label("Roughness/Smoothness", common);
+            GUILayout.Label("Metallic Texture", common);
+            GUILayout.FlexibleSpace();
+            metallicTex = (Texture2D)EditorGUILayout.ObjectField(metallicTex, typeof(Texture2D), false);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(2f);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(80f);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(new GUIContent("Metallic Texture Channel", "Select which channel contains the metallic information. This is typically red for Metallic_Smoothness textures for Unity."));
+            metallicChannel = (TextureChannels)EditorGUILayout.EnumPopup(metallicChannel);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(20f);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(40f);
+            GUILayout.Label(surfaceFinishWorkflow.ToString() + " Texture", common);
             GUILayout.FlexibleSpace();
             roughnessTex = (Texture2D)EditorGUILayout.ObjectField(roughnessTex, typeof(Texture2D), false);
             GUILayout.EndHorizontal();
@@ -126,23 +179,65 @@ namespace GentleShaders.Aurora.Helpers
             GUILayout.Space(2f);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Space(100f);
-            smoothnessTexture = GUILayout.Toggle(smoothnessTexture, new GUIContent("   Smoothness Workflow?", "Select this option if your asset's workflow utilizes Smoothness."));
+            GUILayout.Space(90f);
             GUILayout.FlexibleSpace();
-            alphaChannelSmoothness = GUILayout.Toggle(alphaChannelSmoothness, new GUIContent("   Read from alpha channel?", "Select this option if the provided texture " +
-                "has the roughness/smoothness in the alpha channel. This is common with 'Metallic_Smoothness' textures."));
-            GUILayout.FlexibleSpace();
+            GUILayout.Label(new GUIContent("Surface Finish Workflow", "Select the surface finish texture type. Roughness or Smoothness/Gloss"));
+            surfaceFinishWorkflow = (SurfaceFinishWorkflow)EditorGUILayout.EnumPopup(surfaceFinishWorkflow);
             GUILayout.EndHorizontal();
 
-            GUILayout.Space(10f);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(80f);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(new GUIContent("   " + surfaceFinishWorkflow.ToString() + " Texture Channel", "Select which channel contains the surface finish information. This is typically red for roughness textures, alpha for Metallic_Smoothness textures."));
+            surfaceFinishChannel = (TextureChannels)EditorGUILayout.EnumPopup(surfaceFinishChannel);
+            GUILayout.EndHorizontal();
+
+
+            GUILayout.Space(20f);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(40f);
+            GUILayout.Label("Illumination Texture", common);
+            GUILayout.FlexibleSpace();
+            illuminationTex = (Texture2D)EditorGUILayout.ObjectField(illuminationTex, typeof(Texture2D), false);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(2f);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(80f);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(new GUIContent("Illumination Texture Channel", "Select which channel contains the illumination information. The Aurora swizzle (by definition) can only produce white illumination tinted by the color property of the material."));
+            illuminationChannel = (TextureChannels)EditorGUILayout.EnumPopup(illuminationChannel);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(20f);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(40f);
+            GUILayout.Label("Ambient Occlusion Texture", common);
+            GUILayout.FlexibleSpace();
+            occlusionTex = (Texture2D)EditorGUILayout.ObjectField(occlusionTex, typeof(Texture2D), false);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(2f);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(80f);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(new GUIContent("Occlusion Texture Channel", "Select which channel contains the Ambient Occlusion information. This is typically green for AO textures for Unity."));
+            occlusionChannel = (TextureChannels)EditorGUILayout.EnumPopup(occlusionChannel);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(40f);
 
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Pack Diffuse", GUILayout.Width(150f)))
+            if (GUILayout.Button("Pack Aurora A3", GUILayout.Width(150f)))
             {
-                if (!PackDiffuse())
+                if (!PackAurora())
                 {
-                    EditorUtility.DisplayDialog("Failed", "Either a diffuse or roughness/smoothness texture was not selected, or they are not the same resolution.", "Shucks.");
+                    EditorUtility.DisplayDialog("Failed", "Either no textures were selected, or one of the source textures is not of the same resolution as the others. Check the console for more details.", "Shucks.");
                 }
             }
             GUILayout.FlexibleSpace();
@@ -151,57 +246,38 @@ namespace GentleShaders.Aurora.Helpers
             GUILayout.Space(10f);
         }
 
-        private void DrawEtc()
+        private void DrawNormalConversion()
         {
-            GUILayout.Label("Aurora Packing", h2);
-            GUILayout.Label("This section is for packing textures into an 'Aurora' swizzle.", boldLabels);
-            GUILayout.Label("Assign a diffuse texture above to auto calculate a more-accurate save path. ('DiffuseName_Aurora.png')\nOtherwise, it will be saved in the same location as the first provided texture.", common);
+            GUILayout.Label("OpenGL to DirectX", h2);
+            GUILayout.Label("Normal Conversion", h3);
+            GUILayout.Label("This section is for flipping the Y (Green) channel of the normal map and saving as a new texture.", boldLabels);
 
             GUILayout.Space(6f);
 
             GUILayout.BeginHorizontal();
             GUILayout.Space(40f);
-            GUILayout.Label("Metallic", common);
+            GUILayout.Label("Normal Map", common);
             GUILayout.FlexibleSpace();
-            metallicTex = (Texture2D)EditorGUILayout.ObjectField(metallicTex, typeof(Texture2D), false);
+            normalMap = (Texture2D)EditorGUILayout.ObjectField(normalMap, typeof(Texture2D), false);
             GUILayout.EndHorizontal();
 
-            GUILayout.Space(4f);
+            GUILayout.Space(2f);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Space(40f);
-            GUILayout.Label("Occlusion", common);
+            GUILayout.Space(80f);
             GUILayout.FlexibleSpace();
-            occlusionTex = (Texture2D)EditorGUILayout.ObjectField(occlusionTex, typeof(Texture2D), false);
+            GUILayout.Label(new GUIContent("Current Format", "Select which format your texture currently is, and a new normal map of the opposite format will be generated."));
+            normalMapFormat = (NormalMapFormat)EditorGUILayout.EnumPopup(normalMapFormat);
             GUILayout.EndHorizontal();
-
-            GUILayout.Space(4f);
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(40f);
-            GUILayout.Label("Illumination", common);
-            GUILayout.FlexibleSpace();
-            illuminationTex = (Texture2D)EditorGUILayout.ObjectField(illuminationTex, typeof(Texture2D), false);
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(4f);
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(40f);
-            GUILayout.Label("Curvature", common);
-            GUILayout.FlexibleSpace();
-            curvatureTex = (Texture2D)EditorGUILayout.ObjectField(curvatureTex, typeof(Texture2D), false);
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(10f);
 
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Pack Aurora", GUILayout.Width(150f)))
+            int oppositeNormalFormat = ((int)normalMapFormat + 1) % 2;
+            if (GUILayout.Button("Create " + ((NormalMapFormat)oppositeNormalFormat).ToString() + " Normal Map", GUILayout.Width(250f)))
             {
-                if (!PackEtc())
+                if (!ConvertNormal(oppositeNormalFormat))
                 {
-                    EditorUtility.DisplayDialog("Failed", "Either no textures were selected, or one of the source textures is not of the same resolution as the others. All textures must be the same resolution. (This can be fixed in their import settings)", "Shucks.");
+                    EditorUtility.DisplayDialog("Failed to convert Normal Map", "Check the console for more details.", "Shucks.");
                 }
             }
             GUILayout.FlexibleSpace();
@@ -210,137 +286,109 @@ namespace GentleShaders.Aurora.Helpers
             GUILayout.Space(10f);
         }
 
-        private bool PackDiffuse()
-        {
-            if (!diffuseTex || !roughnessTex) { return false; }
-            if ((diffuseTex.width + diffuseTex.height) != (roughnessTex.width + roughnessTex.height)) { return false; }
-
-            string savePath = AssetDatabase.GetAssetPath(diffuseTex);
-
-            TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(savePath);
-            importer.isReadable = true;
-            importer.crunchedCompression = false;
-            importer.SaveAndReimport();
-
-            Texture2D packedDiffuse = new Texture2D(diffuseTex.width, diffuseTex.height);
-            Color[] diffuseColors = diffuseTex.GetPixels();
-            Color[] roughnessColors = roughnessTex.GetPixels();
-
-            importer.crunchedCompression = true;
-            importer.SaveAndReimport();
-
-            for (int i = 0; i < diffuseColors.Length; i++)
-            {
-                if (smoothnessTexture)
-                {
-                    if (alphaChannelSmoothness)
-                    {
-                        diffuseColors[i].a = 1.0f - roughnessColors[i].a;
-                    }
-                    else
-                    {
-                        diffuseColors[i].a = 1.0f - roughnessColors[i].r;
-                    }
-                }
-                else
-                {
-                    if (alphaChannelSmoothness)
-                    {
-                        diffuseColors[i].a = roughnessColors[i].a;
-                    }
-                    else
-                    {
-                        diffuseColors[i].a = roughnessColors[i].r;
-                    }
-                }
-            }
-
-            packedDiffuse.SetPixels(diffuseColors);
-
-            File.WriteAllBytes(savePath + "_Roughness_A", packedDiffuse.EncodeToPNG());
-            AssetDatabase.Refresh();
-
-            importer = (TextureImporter)TextureImporter.GetAtPath(savePath + "_Roughness_A");
-            importer.crunchedCompression = true;
-            importer.SaveAndReimport();
-            AssetDatabase.Refresh();
-
-            return true;
-        }
-
-        private bool PackEtc()
+        private bool PackAurora()
         {
             int averageSize = 0;
             int count = 0;
             Vector2Int knownSize = Vector2Int.zero;
-            Dictionary<string, Color[]> pixels = new Dictionary<string, Color[]>();
+            Color[][] texturePixels = new Color[System.Enum.GetNames(typeof(AuroraA3SwizzleTextures)).Length][];
 
             string savePath = "";
 
             if (metallicTex)
             {
-                string assetPath = AssetDatabase.GetAssetPath(metallicTex);
-                savePath = assetPath;
-                TextureImporter tempImporter = (TextureImporter)TextureImporter.GetAtPath(assetPath);
-                tempImporter.isReadable = true;
-                tempImporter.crunchedCompression = false;
-                tempImporter.SaveAndReimport();
+                try
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(metallicTex);
+                    savePath = assetPath;
+                    TextureImporter tempImporter = (TextureImporter)TextureImporter.GetAtPath(assetPath);
+                    tempImporter.isReadable = true;
+                    tempImporter.crunchedCompression = false;
+                    tempImporter.SaveAndReimport();
+                }
+                catch(Exception e)
+                {
+                    Log("Error 0m - " + e.Message);
+                }
 
                 knownSize = GetResolution(metallicTex);
                 averageSize += (int)(knownSize.x + knownSize.y);
                 count++;
 
-                pixels.Add("metallic", metallicTex.GetPixels());
+                texturePixels[(int)AuroraA3SwizzleTextures.Metallic] = metallicTex.GetPixels();
             }
-            if (curvatureTex)
+            if (roughnessTex)
             {
-                string assetPath = AssetDatabase.GetAssetPath(curvatureTex);
-                savePath = assetPath;
-                TextureImporter tempImporter = (TextureImporter)TextureImporter.GetAtPath(assetPath);
-                tempImporter.isReadable = true;
-                tempImporter.crunchedCompression = false;
-                tempImporter.SaveAndReimport();
+                try
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(roughnessTex);
+                    savePath = assetPath;
+                    TextureImporter tempImporter = (TextureImporter)TextureImporter.GetAtPath(assetPath);
+                    tempImporter.isReadable = true;
+                    tempImporter.crunchedCompression = false;
+                    tempImporter.SaveAndReimport();
+                }
+                catch (Exception e)
+                {
+                    Log("Error 0r - " + e.Message);
+                }
 
-                knownSize = GetResolution(curvatureTex);
+                knownSize = GetResolution(roughnessTex);
                 averageSize += (int)(knownSize.x + knownSize.y);
                 count++;
 
-                pixels.Add("curvature", curvatureTex.GetPixels());
+                texturePixels[(int)AuroraA3SwizzleTextures.Roughness] = roughnessTex.GetPixels();
             }
             if (illuminationTex)
             {
-                string assetPath = AssetDatabase.GetAssetPath(illuminationTex);
-                savePath = assetPath;
-                TextureImporter tempImporter = (TextureImporter)TextureImporter.GetAtPath(assetPath);
-                tempImporter.isReadable = true;
-                tempImporter.crunchedCompression = false;
-                tempImporter.SaveAndReimport();
+                try
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(illuminationTex);
+                    savePath = assetPath;
+                    TextureImporter tempImporter = (TextureImporter)TextureImporter.GetAtPath(assetPath);
+                    tempImporter.isReadable = true;
+                    tempImporter.crunchedCompression = false;
+                    tempImporter.SaveAndReimport();
+                }
+                catch (Exception e)
+                {
+                    Log("Error 0i - " + e.Message);
+                }
 
                 knownSize = GetResolution(illuminationTex);
                 averageSize += (int)(knownSize.x + knownSize.y);
                 count++;
 
-                pixels.Add("illumination", illuminationTex.GetPixels());
+                texturePixels[(int)AuroraA3SwizzleTextures.Illumination] = illuminationTex.GetPixels();
             }
             if (occlusionTex)
             {
-                string assetPath = AssetDatabase.GetAssetPath(occlusionTex);
-                savePath = assetPath;
-                TextureImporter tempImporter = (TextureImporter)TextureImporter.GetAtPath(assetPath);
-                tempImporter.isReadable = true;
-                tempImporter.crunchedCompression = false;
-                tempImporter.SaveAndReimport();
+                
+                try
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(occlusionTex);
+                    savePath = assetPath;
+                    TextureImporter tempImporter = (TextureImporter)TextureImporter.GetAtPath(assetPath);
+                    tempImporter.isReadable = true;
+                    tempImporter.crunchedCompression = false;
+                    tempImporter.SaveAndReimport();
+                }
+                catch (Exception e)
+                {
+                    Log("Error 0o - " + e.Message);
+                }
 
                 knownSize = GetResolution(occlusionTex);
                 averageSize += (int)(knownSize.x + knownSize.y);
                 count++;
 
-                pixels.Add("occlusion", occlusionTex.GetPixels());
+                texturePixels[(int)AuroraA3SwizzleTextures.Occlusion] = occlusionTex.GetPixels();
             }
 
             //No textures were assigned
-            if(count < 1)
+            if (count < 1)
             {
+                Log("Error 1 - No textures assigned. You must assign at least one texture to pack an Aurora A3 swizzle texture.");
                 return false;
             }
 
@@ -349,48 +397,117 @@ namespace GentleShaders.Aurora.Helpers
             //There was a discrepancy between texture resolutions
             if (averageSize != (int)(knownSize.x + knownSize.y))
             {
+                Log("Error 2 - All textures must be the same resolution. (This might be fixed in the texture import settings)");
                 return false;
             }
 
             Texture2D auroraTexture = new Texture2D(knownSize.x, knownSize.y);
             Color[] auroraPixels = new Color[GetSize(auroraTexture)];
 
-            for(int i = 0; i < auroraPixels.Length; i++)
+            for (int i = 0; i < auroraPixels.Length; i++)
             {
                 //Metallic
-                if (pixels.ContainsKey("metallic"))
+                if (texturePixels[(int)AuroraA3SwizzleTextures.Metallic] != null)
                 {
-                    auroraPixels[i].r = pixels["metallic"][i].r;
+                    float finishData = 0f;
+                    switch (metallicChannel)
+                    {
+                        case TextureChannels.Red:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Metallic][i].r;
+                            break;
+                        case TextureChannels.Green:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Metallic][i].g;
+                            break;
+                        case TextureChannels.Blue:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Metallic][i].b;
+                            break;
+                        case TextureChannels.Alpha:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Metallic][i].a;
+                            break;
+                    }
+                    auroraPixels[i].r = finishData;
                 }
                 else
                 {
-                    auroraPixels[i].r = 0f;
+                    auroraPixels[i].r = 1.0f;
                 }
 
-                //Curvature
-                if (pixels.ContainsKey("curvature"))
+                //Roughness
+                if (texturePixels[(int)AuroraA3SwizzleTextures.Roughness] != null)
                 {
-                    auroraPixels[i].g = pixels["curvature"][i].r;
+                    float finishData = 0f;
+                    switch (surfaceFinishChannel)
+                    {
+                        case TextureChannels.Red:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Roughness][i].r;
+                            break;
+                        case TextureChannels.Green:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Roughness][i].g;
+                            break;
+                        case TextureChannels.Blue:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Roughness][i].b;
+                            break;
+                        case TextureChannels.Alpha:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Roughness][i].a;
+                            break;
+                    }
+                    if(surfaceFinishWorkflow != SurfaceFinishWorkflow.Roughness)
+                    {
+                        finishData = 1.0f - finishData;
+                    }
+                    auroraPixels[i].g = finishData;
                 }
                 else
                 {
-                    auroraPixels[i].g = 0f;
+                    auroraPixels[i].g = 0.0f;
                 }
 
                 //Illumination
-                if (pixels.ContainsKey("illumination"))
+                if (texturePixels[(int)AuroraA3SwizzleTextures.Illumination] != null)
                 {
-                    auroraPixels[i].b = pixels["illumination"][i].r;
+                    float finishData = 0f;
+                    switch (illuminationChannel)
+                    {
+                        case TextureChannels.Red:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Illumination][i].r;
+                            break;
+                        case TextureChannels.Green:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Illumination][i].g;
+                            break;
+                        case TextureChannels.Blue:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Illumination][i].b;
+                            break;
+                        case TextureChannels.Alpha:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Illumination][i].a;
+                            break;
+                    }
+                    auroraPixels[i].b = finishData;
                 }
                 else
                 {
-                    auroraPixels[i].b = 0f;
+                    auroraPixels[i].b = 0.0f;
                 }
 
                 //Occlusion
-                if (pixels.ContainsKey("occlusion"))
+                if (texturePixels[(int)AuroraA3SwizzleTextures.Occlusion] != null)
                 {
-                    auroraPixels[i].a = pixels["occlusion"][i].r;
+                    float finishData = 0f;
+                    switch (occlusionChannel)
+                    {
+                        case TextureChannels.Red:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Occlusion][i].r;
+                            break;
+                        case TextureChannels.Green:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Occlusion][i].g;
+                            break;
+                        case TextureChannels.Blue:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Occlusion][i].b;
+                            break;
+                        case TextureChannels.Alpha:
+                            finishData = texturePixels[(int)AuroraA3SwizzleTextures.Occlusion][i].a;
+                            break;
+                    }
+                    auroraPixels[i].a = finishData;
                 }
                 else
                 {
@@ -401,48 +518,85 @@ namespace GentleShaders.Aurora.Helpers
             auroraTexture.SetPixels(auroraPixels);
             auroraTexture.Apply();
 
-            savePath = diffuseTex != null ? AssetDatabase.GetAssetPath(diffuseTex) : savePath;
-            savePath = savePath.Replace(".png", "").Replace(".tif", "").Replace(".bmp", "").Replace(".jpg", "").Replace(".jpeg", "").Replace(".dds", "");
+            TextureImporter importer;
+            try
+            {
+                savePath = diffuseTex != null ? AssetDatabase.GetAssetPath(diffuseTex) : savePath;
+                savePath = savePath.Replace("_Albedo", "").Replace("_AlbedoTransparency", "").Replace("_Albedo_Transparency", "").Replace("_Diffuse", "");
+                savePath = savePath.Replace(".png", "").Replace(".tif", "").Replace(".bmp", "").Replace(".jpg", "").Replace(".jpeg", "").Replace(".dds", "");
 
-            File.WriteAllBytes(savePath + "_Aurora.png", auroraTexture.EncodeToPNG());
-            AssetDatabase.Refresh();
+                File.WriteAllBytes(savePath + "_Aurora_A3_Packed.png", auroraTexture.EncodeToPNG());
+                AssetDatabase.Refresh();
 
-            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(savePath + "_Aurora.png");
-            importer.crunchedCompression = true;
-            importer.SaveAndReimport();
+                importer = (TextureImporter)AssetImporter.GetAtPath(savePath + "_Aurora_A3_Packed.png");
+                importer.crunchedCompression = true;
+                importer.SaveAndReimport();
+            }
+            catch(Exception e)
+            {
+                Log("Error 3a - " + e.Message);
+                return false;
+            }
 
             if (metallicTex)
             {
-                string assetPath = AssetDatabase.GetAssetPath(metallicTex);
-                importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
-                importer.isReadable = true;
-                importer.crunchedCompression = true;
-                importer.SaveAndReimport();
+                try
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(metallicTex);
+                    importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+                    importer.isReadable = true;
+                    importer.crunchedCompression = true;
+                    importer.SaveAndReimport();
+                }
+                catch(Exception e)
+                {
+                    Log("Error 3m - " + e.Message);
+                }
             }
-
-            if (curvatureTex)
+            if (roughnessTex)
             {
-                string assetPath = AssetDatabase.GetAssetPath(curvatureTex);
-                importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
-                importer.isReadable = true;
-                importer.crunchedCompression = true;
-                importer.SaveAndReimport();
+                try
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(roughnessTex);
+                    importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+                    importer.isReadable = true;
+                    importer.crunchedCompression = true;
+                    importer.SaveAndReimport();
+                }
+                catch (Exception e)
+                {
+                    Log("Error 3r - " + e.Message);
+                }
             }
             if (illuminationTex)
             {
-                string assetPath = AssetDatabase.GetAssetPath(illuminationTex);
-                importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
-                importer.isReadable = true;
-                importer.crunchedCompression = true;
-                importer.SaveAndReimport();
+                try
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(illuminationTex);
+                    importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+                    importer.isReadable = true;
+                    importer.crunchedCompression = true;
+                    importer.SaveAndReimport();
+                }
+                catch (Exception e)
+                {
+                    Log("Error 3i - " + e.Message);
+                }
             }
             if (occlusionTex)
             {
-                string assetPath = AssetDatabase.GetAssetPath(occlusionTex);
-                importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
-                importer.isReadable = true;
-                importer.crunchedCompression = true;
-                importer.SaveAndReimport();
+                try
+                {
+                    string assetPath = AssetDatabase.GetAssetPath(occlusionTex);
+                    importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+                    importer.isReadable = true;
+                    importer.crunchedCompression = true;
+                    importer.SaveAndReimport();
+                }
+                catch (Exception e)
+                {
+                    Log("Error 3o - " + e.Message);
+                }
             }
 
             AssetDatabase.Refresh();
@@ -450,9 +604,74 @@ namespace GentleShaders.Aurora.Helpers
             return true;
         }
 
-        private int GetResolutionInt(Texture2D texture)
+        private bool ConvertNormal(int desiredFormat)
         {
-            return texture.width + texture.height;
+            string assetPath = AssetDatabase.GetAssetPath(normalMap);
+            string savePath = assetPath.Replace(normalMap.name, "").Replace(".png", "").Replace(".jpg", "").Replace(".jpeg", "").Replace(".bmp", "").Replace(".tif", "").Replace(".dds", "").Replace(".tga", "");
+            TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(assetPath);
+            importer.textureType = TextureImporterType.Default;
+            if (importer.crunchedCompression)
+            {
+                importer.crunchedCompression = false;
+            }
+            importer.isReadable = true;
+            importer.SaveAndReimport();
+
+            Texture2D newNormal = new Texture2D(normalMap.width, normalMap.height);
+
+            if (desiredFormat == 0)
+            {
+                newNormal.name = normalMap.name.Replace("_DirectX", "") + "_OpenGL";
+            }
+            else
+            {
+                newNormal.name = normalMap.name.Replace("_OpenGL", "") + "_DirectX";
+            }
+
+            Color[] normalPixels = normalMap.GetPixels();
+            Color[] convertedPixels = new Color[normalMap.height * normalMap.width];
+
+            for (int i = 0; i < normalPixels.Length; i++)
+            {
+                convertedPixels[i] = new Color(normalPixels[i].r, 1.0f - normalPixels[i].g, normalPixels[i].b);
+            }
+
+            newNormal.SetPixels(convertedPixels);
+            newNormal.Apply();
+
+            byte[] normalBytes = newNormal.EncodeToPNG();
+
+            try
+            {
+                //Converted Normal
+                FileStream normalStream = new FileStream(savePath + newNormal.name + ".png", FileMode.Create);
+                BinaryWriter normalWriter = new BinaryWriter(normalStream);
+                normalWriter.Write(normalBytes);
+                normalWriter.Close();
+
+                AssetDatabase.Refresh();
+
+                TextureImporter newNormalImporter = (TextureImporter)AssetImporter.GetAtPath(savePath + newNormal.name + ".png");
+                newNormalImporter.streamingMipmaps = true;
+                newNormalImporter.textureType = TextureImporterType.NormalMap;
+                newNormalImporter.crunchedCompression = true;
+                newNormalImporter.SaveAndReimport();
+            }
+            catch (Exception e)
+            {
+                Log("NormalConversion - " + e.Message);
+                return false;
+            }
+
+            if (importer != null)
+            {
+                importer.textureType = TextureImporterType.NormalMap;
+                importer.crunchedCompression = true;
+                importer.isReadable = false;
+                importer.SaveAndReimport();
+            }
+
+            return true;
         }
 
         private int GetSize(Texture2D texture)
@@ -463,6 +682,11 @@ namespace GentleShaders.Aurora.Helpers
         private Vector2Int GetResolution(Texture2D texture)
         {
             return new Vector2Int(texture.width, texture.height);
+        }
+
+        private void Log(string message)
+        {
+            Debug.LogError("Aurora Packer - " + message);
         }
     }
 }

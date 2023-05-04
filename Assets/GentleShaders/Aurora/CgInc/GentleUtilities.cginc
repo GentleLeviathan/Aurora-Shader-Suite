@@ -214,3 +214,19 @@ SOFTWARE.
 		tangentViewDir = normalize(tangentViewDir);
 		return uv.xy += tangentViewDir.xy * (height * strength);
 	}
+
+	UnityIndirect RepairGI(UnityIndirect gi)
+	{
+		gi.diffuse = LinearToGammaSpace(gi.diffuse);
+		gi.specular = LinearToGammaSpace(gi.specular);
+		return gi;
+	}
+
+    struct SurfaceOutputAurora
+    {
+        fixed3 Albedo;
+		fixed3 Normal;
+		fixed3 Emission;
+		fixed Metallic;
+		fixed Roughness;
+    };
