@@ -59,3 +59,8 @@ A quick disclaimer:
 I do not condone reverse-engineering or pirating software, assets, or intellectual property.
 This suite is only designed for working with assets inspired by Microsoft's 'Halo' universe.
 You will not find any intellectual property in this repository.
+
+
+![SPI_Mirage_GitHub](https://user-images.githubusercontent.com/17507902/236127779-849a8a72-af06-45eb-9dc4-f0cf55b848a1.png)
+![A3_Rave_GitHub](https://user-images.githubusercontent.com/17507902/236127792-f60cdbaa-2411-4ca6-b6d2-59ab8ba83649.png)
+
