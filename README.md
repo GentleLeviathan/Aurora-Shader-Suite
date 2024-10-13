@@ -3,20 +3,21 @@ Requires Unity 2019.1.x or greater.
 Includes output template for Substance Painter.
 
 A suite of tools and a shader for a personal project. Takes advantage of a texture swizzle ('Aurora') to represent Metallic, Roughness, Illumination (single channel emission), and Occlusion.
-AR3.0 has made significant changes to the Aurora shader. The new A3 swizzle *must* be utilized.
+AR3.0+ has made significant changes to the Aurora shader. The new A3 swizzle *must* be utilized.
 
 A helper to upgrade existing Aurora A2 textures to the A3 swizzle will be included at a later time.
 For now, you must export your textures from your texture program again, or utilize the included Aurora Packer helper to generate a new A3 texture.
 
-New lighting model is energy conserving (Advanced options allow modification to more closely match AR2)
+New lighting model is energy conserving* (Options allow modification to more closely match AR2)
+(There are clearly marked configurable options that violate energy-conservation but may appear more 'grounded' in some situations)
 
 ### Unique features include:
   * 4 channel color masking via an RGBA color control texture (3 channels have color properties)
   * Per color mask channel pattern support (useful for camouflage or fabric)
   * Color 'depth' for increasing texture contrast via slider
-  * ~~Detail diffuse and normal with strength slider and tiling/offset vector~~ (Deprecated in AR3.0)
+  * ~~Detail diffuse and normal with strength slider and tiling/offset vector~~ (Deprecated in AR3.0+)
   * Decal textures applied via mesh UV2 for text/image clarity
-  * 'Rave' section with 4 channel HDR Color emission + a scrolling mask texture. (AudioLink supported)
+  * 'Rave' section with 4 channel HDR Color emission + a scrolling mask texture. ([AudioLink](https://github.com/llealloo/audiolink) supported)
   
 ### UDIM=5 Support
   * Supports up to 5 unique texture sets, each with their own Diffuse, Normal, CC, Aurora, and Pattern textures!
@@ -28,7 +29,7 @@ New lighting model is energy conserving (Advanced options allow modification to 
 ### Includes a set of 'Helper' tools, including:
   * OpenGL to DirectX normal format (and vice-versa)
   * Tool to pack traditional Metallic, Smoothness, Emission, and Occlusion textures into the 'Aurora' swizzle format.
-  * Material baking (for applying shader color zones, patterns, and depth to a new diffuse texture to be used elsewhere.) (Not yet(?) supported in AR3.0)
+  * Material baking (for applying shader color zones, patterns, and depth to a new diffuse texture to be used elsewhere.) (Not yet(?) supported in AR3.0+)
 
 ### Additional helpers to enable the use of assets inspired by Microsoft's 'Halo' games. (Via legacy AR2 interface)
 Supports armor sets and textures from the following 'Halo' games:
@@ -50,7 +51,7 @@ Supports armor sets and textures from the following 'Halo' games:
 Rave CC is a 4 channel texture with an HDR color property for each channel.
 Rave Mask is a 4 channel texture which is multiplied by the Rave CC color result to modify it.
 The Rave section has per channel x+y speed properties which control the UV scrolling applied to the Rave Mask texture channels.
-If [VRC AudioLink](https://github.com/llealloo/vrc-udon-audio-link) is installed in the project, the option to enable it will appear at the bottom of the rave section, along with other options such as chronotensity scrolling.
+If [AudioLink](https://github.com/llealloo/vrc-udon-audio-link) is installed in the project, the option to enable it will appear at the bottom of the rave section, along with other options such as chronotensity scrolling.
 
 
 This suite is licensed under the MIT License.
