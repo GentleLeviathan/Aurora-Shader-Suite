@@ -53,7 +53,7 @@ namespace GentleShaders.Aurora.Common
 
     public static class AuroraCommon
     {
-        public static string currentVersion = "AR3.0";
+        public static string currentVersion = "AR4.1";
 
         public static void OpenRepository()
         {
