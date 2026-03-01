@@ -2,7 +2,7 @@
 
 MIT License
 
-Copyright (c) 2023 GentleLeviathan
+Copyright (c) 2024 GentleLeviathan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ SOFTWARE.
 */
 
 
-Shader "GentleShaders/Aurora A3"
+Shader "GentleShaders/Aurora_AR4"
 {
 	Properties
 	{
@@ -33,54 +33,51 @@ Shader "GentleShaders/Aurora A3"
         _MainTex ("Diffuse 0 (RGB)", 2D) = "white" {}
         [Normal]_BumpMap ("Normal 0", 2D) = "bump" {}
         _CC ("Color Control 0", 2D) = "red" {}
-        _Aurora ("Aurora 0", 2D) = "black" {}
-        _Pattern ("Pattern 0", 2D) = "white" {}
+        _Aurora ("Aurora 0", 2D) = "white" {}
 		_RaveCC ("Rave CC 0 (RGBA)", 2D) = "black"{}
 
         _MainTex1 ("Diffuse 1 (RGB)", 2D) = "white" {}
         [Normal]_BumpMap1 ("Normal 1", 2D) = "bump" {}
         _CC1 ("Color Control 1", 2D) = "black" {}
-        _Aurora1 ("Aurora 1", 2D) = "black" {}
-        _Pattern1 ("Pattern 1", 2D) = "white" {}
+        _Aurora1 ("Aurora 1", 2D) = "white" {}
 		_RaveCC1 ("Rave CC 1 (RGBA)", 2D) = "black"{}
 
         _MainTex2 ("Diffuse 2 (RGB)", 2D) = "white" {}
         [Normal]_BumpMap2 ("Normal 2", 2D) = "bump" {}
         _CC2 ("Color Control 2", 2D) = "black" {}
-        _Aurora2 ("Aurora 2", 2D) = "black" {}
-        _Pattern2 ("Pattern 2", 2D) = "white" {}
+        _Aurora2 ("Aurora 2", 2D) = "white" {}
 		_RaveCC2 ("Rave CC 2 (RGBA)", 2D) = "black"{}
 
         _MainTex3 ("Diffuse 3 (RGB)", 2D) = "white" {}
         [Normal]_BumpMap3 ("Normal 3", 2D) = "bump" {}
         _CC3 ("Color Control 3", 2D) = "black" {}
-        _Aurora3 ("Aurora 3", 2D) = "black" {}
-        _Pattern3 ("Pattern 3", 2D) = "white" {}
+        _Aurora3 ("Aurora 3", 2D) = "white" {}
 		_RaveCC3 ("Rave CC 3 (RGBA)", 2D) = "black"{}
 
         _MainTex4 ("Diffuse 4 (RGB)", 2D) = "white" {}
         [Normal]_BumpMap4 ("Normal 4", 2D) = "bump" {}
         _CC4 ("Color Control 4", 2D) = "black" {}
-        _Aurora4 ("Aurora 4", 2D) = "black" {}
-        _Pattern4 ("Pattern 4", 2D) = "white" {}
+        _Aurora4 ("Aurora 4", 2D) = "white" {}
 		_RaveCC4 ("Rave CC 4 (RGBA)", 2D) = "black"{}
 
 		_Decals("Decal Texture (UV2)", 2D) = "black" {}
 		_DecalNormal("Decal Normal (UV2)", 2D) = "bump" {}
 
 		//Colors
-		_Color("Color", Color) = (1,0,0,1)
+		_Color("Color", Color) = (1,1,1,1)
 		_SecondaryColor("Secondary Color", Color) = (0,1,0,1)
 		_TertiaryColor("Tertiary Color", Color) = (1,1,1,1)
 		[HDR]_IllumColor("Illumination Color", Color) = (0,0,0,1)
 
 		//Values
-		_trueMetallic("Metalness", Range(0, 1)) = 0.5
+		_trueMetallic("Metalness", Range(0, 1)) = 1
 		_Roughness("Roughness", Range(0 , 1)) = 0.0
 		_Deepness("Color Deepness", Range(0,1)) = 0
+		_alphaCutoff("Alpha Cutoff", Range(0, 1)) = 0.5
 
 		//Toggles
 		_ColorTexture("Color Texture", Int) = 0
+		_cutoffDisable("Cutoff Disabled", Int) = 1
 
 		//Rave Section
 		[HDR]_RaveColor("Rave Color", Color) = (1,0,0,1)
@@ -95,10 +92,11 @@ Shader "GentleShaders/Aurora A3"
 		//Alt Toggles
 		_DetailStrength("Detail Map Strength", Range(0, 2)) = 0.5
 		_lightingBypass("bypassLighting", Int) = 0
-		_lightingSwitch("switchLighting", Int) = 0
-		_giBoost("ambientBoost", Int) = 0
+		_accountForBLSH("Account for BLSH?", Int) = 1
+		_giBoost("ambientBoost", Range(0, 4)) = 1
 		_uvMethodSwitch("altUVMethod", Int) = 0
 
+		//AudioLink properties
 		_useALThemeColor0("AL Theme Color 0", Int) = 0
 		_useALThemeColor1("AL Theme Color 1", Int) = 0
 		_useALThemeColor2("AL Theme Color 2", Int) = 0
@@ -119,50 +117,68 @@ Shader "GentleShaders/Aurora A3"
 		_audioLinkAdd2("Add AL Value 2", Int) = 1
 		_audioLinkAdd3("Add AL Value 3", Int) = 1
 
-		[Enum(Add,0,Subtract,1,Multiply,2,Divide,3)] _BlendMode ("Pattern Blend Mode", Float) = 0
+		_InverseGlossGain("IG Gain", Range(0, 1)) = 0.9
+		_InverseGloss("Inverse Gloss", Range(0, 1)) = 0
+
+		//UI
+		[HideInInspector] _TextureSetName_0 ("Texture Set 0 Name", Vector) = (66658369, 0, 0, 0)
+		[HideInInspector] _TextureSetName_1 ("Texture Set 1 Name", Vector) = (83698449, 0, 0, 0)
+		[HideInInspector] _TextureSetName_2 ("Texture Set 2 Name", Vector) = (83698450, 0, 0, 0)
+		[HideInInspector] _TextureSetName_3 ("Texture Set 3 Name", Vector) = (83698451, 0, 0, 0)
+		[HideInInspector] _TextureSetName_4 ("Texture Set 4 Name", Vector) = (83698452, 0, 0, 0)
+
+		//Blending
+		[HideInInspector] _SrcBlend ("_srcBlend", Float) = 1.0
+		[HideInInspector] _DstBlend ("_dstBlend", Float) = 10.0
+		[HideInInspector] _ZWrite ("_zWrite", Float) = 1.0
+		[HideInInspector] _ZTest ("_zTest", Float) = 4.0
 	}
 
     SubShader
     {
 		Tags { "RenderType" = "Opaque"  "Queue" = "Geometry+0" }
 		Cull Back
-		ZWrite On
-		ZTest LEqual
+		ZWrite [_ZWrite]
+		ZTest [_ZTest]
 		CGPROGRAM
 
 		#include "../../CgInc/AuroraCommon.cginc"
 		#include "../../CgInc/AuroraBRDF.cginc"
+		#include "../../CgInc/AuroraFiveX.cginc"
+
 		#pragma target 4.0
 		#pragma only_renderers d3d11 glcore gles
 		#pragma surface surface Aurora addshadow fullforwardshadows
 
 		//local features
-		#pragma shader_feature_local _PATTERN			//2
-		#pragma shader_feature_local _DECALS			//4
-		#pragma shader_feature_local _RAVE				//8
-		#pragma shader_feature_local _VRCAUDIOLINK		//16
+		#pragma shader_feature_local _DECALS			//2
+		#pragma shader_feature_local _RAVE				//4
+		#pragma shader_feature_local _VRCAUDIOLINK		//8
 
-		#pragma shader_feature_local _U1				//32
-        #pragma shader_feature_local _U2				//64
-        #pragma shader_feature_local _U3				//128
-        #pragma shader_feature_local _U4				//256
+		#pragma shader_feature_local _U1				//16
+        #pragma shader_feature_local _U2				//32
+        #pragma shader_feature_local _U3				//64
+        #pragma shader_feature_local _U4				//128
 
 		#ifdef _VRCAUDIOLINK
 			#include "../../CgInc/AudioLink/AuroraAL.cginc"
 		#endif
 
-		uniform fixed _lightingBypass;
-		uniform fixed _lightingSwitch;
-		uniform int _giBoost;
-		uniform int _uvMethodSwitch;
+		uniform uint _lightingBypass;
+		uniform uint _accountForBLSH;
+		uniform fixed _giBoost;
+		uniform uint _uvMethodSwitch;
+		uniform uint _cutoffDisable;
 
 		void LightingAurora_GI (SurfaceOutput s, UnityGIInput data, inout UnityGI gi)
 		{
 			#if defined(UNITY_PASS_DEFERRED) && UNITY_ENABLE_REFLECTION_BUFFERS
 				gi = UnityGlobalIllumination(data, s.Specular, s.Normal);
 			#else
-				Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(1.0 - s.Gloss, data.worldViewDir, s.Normal, lerp(unity_ColorSpaceDielectricSpec.rgb, s.Albedo, s.Alpha));
+				float2 unpack = unpack_floats_4bpf(s.Alpha);
+				Unity_GlossyEnvironmentData g = UnityGlossyEnvironmentSetup(1.0 - s.Gloss, data.worldViewDir, s.Normal, lerp(unity_ColorSpaceDielectricSpec.rgb, s.Albedo, unpack.r));
 				gi = UnityGlobalIllumination(data, s.Specular, s.Normal, g);
+				half3 probeLightDir = AuroraBLSHAccount(data, gi, _accountForBLSH);
 			#endif
 		}
 
@@ -172,11 +188,13 @@ Shader "GentleShaders/Aurora A3"
 
 			half oneMinusReflectivity;
 			half3 specColor;
-			s.Alpha *= 1.7 - 0.7 * s.Alpha;
-			half3 diffuse = DiffuseAndSpecularFromMetallic (s.Albedo, s.Alpha, /*out*/ specColor, /*out*/ oneMinusReflectivity);
+			float2 unpack = unpack_floats_4bpf(s.Alpha);
+
+			unpack.r *= 1.7 - 0.7 * unpack.r;
+			half3 diffuse = DiffuseAndSpecularFromMetallic (s.Albedo, unpack.r, /*out*/ specColor, /*out*/ oneMinusReflectivity);
 
 			half4 c;
-			c = AuroraBRDF(s.Albedo, diffuse, specColor, oneMinusReflectivity, s.Alpha, s.Gloss, s.Specular, s.Normal, viewDir, gi.light, gi.indirect, _lightingBypass, _giBoost);
+			c = AuroraBRDF4(s.Albedo, diffuse, specColor, unpack.g, oneMinusReflectivity, unpack.r, s.Gloss, s.Specular, s.Normal, viewDir, gi.light, gi.indirect, _lightingBypass, _giBoost);
 			return c;
 		}
 
@@ -184,8 +202,8 @@ Shader "GentleShaders/Aurora A3"
 		{
 			float2 uv_MainTex;
 			float2 uv2_Decals;
-			float2 uv_Pattern;
 			float2 uv_RaveMask;
+			float3 viewDir;
 		};
 
 		SamplerState sampler_linear_repeat;
@@ -194,9 +212,6 @@ Shader "GentleShaders/Aurora A3"
 		UNITY_DECLARE_TEX2D(_BumpMap);
 		UNITY_DECLARE_TEX2D(_CC);
 		UNITY_DECLARE_TEX2D(_Aurora);
-		#ifdef _PATTERN
-			UNITY_DECLARE_TEX2D(_Pattern);
-		#endif
 
 		#ifdef _DECALS
 			uniform sampler2D _Decals;
@@ -219,9 +234,6 @@ Shader "GentleShaders/Aurora A3"
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_BumpMap1);
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_CC1);
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_Aurora1);
-            #ifdef _PATTERN
-			    UNITY_DECLARE_TEX2D_NOSAMPLER(_Pattern1);
-		    #endif
 			#ifdef _RAVE
 				UNITY_DECLARE_TEX2D_NOSAMPLER(_RaveCC1);
 			#endif
@@ -232,9 +244,6 @@ Shader "GentleShaders/Aurora A3"
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_BumpMap2);
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_CC2);
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_Aurora2);
-            #ifdef _PATTERN
-			    UNITY_DECLARE_TEX2D_NOSAMPLER(_Pattern2);
-		    #endif
 			#ifdef _RAVE
 				UNITY_DECLARE_TEX2D_NOSAMPLER(_RaveCC2);
 			#endif
@@ -245,9 +254,6 @@ Shader "GentleShaders/Aurora A3"
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_BumpMap3);
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_CC3);
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_Aurora3);
-            #ifdef _PATTERN
-			    UNITY_DECLARE_TEX2D_NOSAMPLER(_Pattern3);
-		    #endif
 			#ifdef _RAVE
 				UNITY_DECLARE_TEX2D_NOSAMPLER(_RaveCC3);
 			#endif
@@ -258,9 +264,6 @@ Shader "GentleShaders/Aurora A3"
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_BumpMap4);
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_CC4);
 			UNITY_DECLARE_TEX2D_NOSAMPLER(_Aurora4);
-            #ifdef _PATTERN
-			    UNITY_DECLARE_TEX2D_NOSAMPLER(_Pattern4);
-		    #endif
 			#ifdef _RAVE
 				UNITY_DECLARE_TEX2D_NOSAMPLER(_RaveCC4);
 			#endif
@@ -275,6 +278,7 @@ Shader "GentleShaders/Aurora A3"
 		uniform half _DetailStrength;
 
 		uniform fixed _trueMetallic;
+		uniform fixed _alphaCutoff;
 		uniform fixed _ColorTexture;
 		uniform fixed _BlendMode;
 
@@ -298,18 +302,10 @@ Shader "GentleShaders/Aurora A3"
 		uniform uint _audioLinkAdd2;
 		uniform uint _audioLinkAdd3;
 
+		uniform fixed _InverseGlossGain;
+		uniform fixed _InverseGloss;
+
 		uint _TileCount;
-
-		float2 GetUV(int tileNumber, float2 uv)
-        {
-            tileNumber++;
-            return float2(uv.x + ((1 / _TileCount) * tileNumber), uv.y);
-        }
-
-        fixed GetMultiplier(int tileNumber, float2 uv)
-        {
-            return step(step((1.0 / _TileCount) * (tileNumber + 1), uv.x), 0) * step((1.0 / _TileCount) * tileNumber, uv.x);
-        }
         
 		void surface( Input i, inout SurfaceOutput o )
 		{
@@ -329,19 +325,18 @@ Shader "GentleShaders/Aurora A3"
 
             //UV Setup
             float2 uv_d = float2(i.uv_MainTex.x * _TileCount, i.uv_MainTex.y);
-			float2 uv_p = float2(i.uv_Pattern.x * _TileCount, i.uv_Pattern.y);
-            float2 uv0 = GetUV(0, uv_d);
+            float2 uv0 = GetUV(_TileCount, 0, uv_d);
             #ifdef _U1
-                float2 uv1 = GetUV(1, uv_d);
+                float2 uv1 = GetUV(_TileCount, 1, uv_d);
             #endif
             #ifdef _U2
-                float2 uv2 = GetUV(2, uv_d);
+                float2 uv2 = GetUV(_TileCount, 2, uv_d);
             #endif
             #ifdef _U3
-                float2 uv3 = GetUV(3, uv_d);
+                float2 uv3 = GetUV(_TileCount, 3, uv_d);
             #endif
             #ifdef _U4
-                float2 uv4 = GetUV(4, uv_d);
+                float2 uv4 = GetUV(_TileCount, 4, uv_d);
             #endif
 
 			fixed4 tempNormal = half4(0,0,0,1);
@@ -352,9 +347,6 @@ Shader "GentleShaders/Aurora A3"
                 tempNormal = UNITY_SAMPLE_TEX2D_SAMPLER(_BumpMap1, _BumpMap, uv1);
                 tempNormal.g = 1.0 - tempNormal.g;
                 fixed3 n1 = UnpackNormal(tempNormal);
-                #ifdef _PATTERN
-                    fixed4 pattern1 = UNITY_SAMPLE_TEX2D_SAMPLER(_Pattern1, _Pattern, GetUV(1, uv_p));
-                #endif
 				#ifdef _RAVE
 					fixed4 rave1 = UNITY_SAMPLE_TEX2D_SAMPLER(_RaveCC1, _RaveCC, uv1);
 				#endif
@@ -366,9 +358,6 @@ Shader "GentleShaders/Aurora A3"
                 tempNormal = UNITY_SAMPLE_TEX2D_SAMPLER(_BumpMap2, _BumpMap, uv2);
                 tempNormal.g = 1.0 - tempNormal.g;
                 fixed3 n2 = UnpackNormal(tempNormal);
-                #ifdef _PATTERN
-                    fixed4 pattern2 = UNITY_SAMPLE_TEX2D_SAMPLER(_Pattern2, _Pattern, GetUV(2, uv_p));
-                #endif
 				#ifdef _RAVE
 					fixed4 rave2 = UNITY_SAMPLE_TEX2D_SAMPLER(_RaveCC2, _RaveCC, uv2);
 				#endif
@@ -380,9 +369,6 @@ Shader "GentleShaders/Aurora A3"
                 tempNormal = UNITY_SAMPLE_TEX2D_SAMPLER(_BumpMap3, _BumpMap, uv3);
                 tempNormal.g = 1.0 - tempNormal.g;
                 fixed3 n3 = UnpackNormal(tempNormal);
-                #ifdef _PATTERN
-                    fixed4 pattern3 = UNITY_SAMPLE_TEX2D_SAMPLER(_Pattern3, _Pattern, GetUV(3, uv_p));
-                #endif
 				#ifdef _RAVE
 					fixed4 rave3 = UNITY_SAMPLE_TEX2D_SAMPLER(_RaveCC3, _RaveCC, uv3);
 				#endif
@@ -394,9 +380,6 @@ Shader "GentleShaders/Aurora A3"
                 tempNormal = UNITY_SAMPLE_TEX2D_SAMPLER(_BumpMap4, _BumpMap, uv4);
                 tempNormal.g = 1.0 - tempNormal.g;
                 fixed3 n4 = UnpackNormal(tempNormal);
-                #ifdef _PATTERN
-                    fixed4 pattern4 = UNITY_SAMPLE_TEX2D_SAMPLER(_Pattern4, _Pattern, GetUV(4, uv_p));
-                #endif
 				#ifdef _RAVE
 					fixed4 rave4 = UNITY_SAMPLE_TEX2D_SAMPLER(_RaveCC4, _RaveCC, uv4);
 				#endif
@@ -405,9 +388,6 @@ Shader "GentleShaders/Aurora A3"
 			fixed4 diffuse = UNITY_SAMPLE_TEX2D(_MainTex, uv0);
             fixed4 aurora = UNITY_SAMPLE_TEX2D(_Aurora, uv0);
             fixed4 cc = UNITY_SAMPLE_TEX2D(_CC, uv0);
-			#ifdef _PATTERN
-				half4 pattern = UNITY_SAMPLE_TEX2D(_Pattern, GetUV(0, uv_p));
-			#endif
 			#ifdef _RAVE
 				fixed4 raveCC = UNITY_SAMPLE_TEX2D(_RaveCC, uv0);
 			#endif
@@ -416,20 +396,17 @@ Shader "GentleShaders/Aurora A3"
 			float3 finalNormal = normalize(UnpackNormal(float4(normal.r, 1 - normal.g, normal.b, normal.a)));
 
             //MULTIPLIERS
-            int tempMultiplier = GetMultiplier(0, i.uv_MainTex);
+            int tempMultiplier = GetMultiplier(_TileCount, 0, i.uv_MainTex);
             diffuse *= tempMultiplier;
             cc *= tempMultiplier;
             aurora *= tempMultiplier;
-            #ifdef _PATTERN
-                pattern *= tempMultiplier;
-            #endif
 			#ifdef _RAVE
 				raveCC *= tempMultiplier;
 			#endif
 
             finalNormal *= tempMultiplier;
             #ifdef _U1
-                tempMultiplier = GetMultiplier(1, i.uv_MainTex);
+                tempMultiplier = GetMultiplier(_TileCount, 1, i.uv_MainTex);
                 c1 *= tempMultiplier;
                 diffuse += c1;
 
@@ -442,17 +419,13 @@ Shader "GentleShaders/Aurora A3"
                 a1 *= tempMultiplier;
                 aurora += a1;
 
-                #ifdef _PATTERN
-                    pattern1 *= tempMultiplier;
-                    pattern += pattern1;
-                #endif
 				#ifdef _RAVE
 					rave1 *= tempMultiplier;
 					raveCC += rave1;
 				#endif
             #endif
             #ifdef _U2
-                tempMultiplier = GetMultiplier(2, i.uv_MainTex);
+                tempMultiplier = GetMultiplier(_TileCount, 2, i.uv_MainTex);
                 c2 *= tempMultiplier;
                 diffuse += c2;
 
@@ -465,17 +438,13 @@ Shader "GentleShaders/Aurora A3"
                 a2 *= tempMultiplier;
                 aurora += a2;
 
-                #ifdef _PATTERN
-                    pattern2 *= tempMultiplier;
-                    pattern += pattern2;
-                #endif
 				#ifdef _RAVE
 					rave2 *= tempMultiplier;
 					raveCC += rave2;
 				#endif
             #endif
             #ifdef _U3
-                tempMultiplier = GetMultiplier(3, i.uv_MainTex);
+                tempMultiplier = GetMultiplier(_TileCount, 3, i.uv_MainTex);
                 c3 *= tempMultiplier;
                 diffuse += c3;
 
@@ -488,17 +457,13 @@ Shader "GentleShaders/Aurora A3"
                 a3 *= tempMultiplier;
                 aurora += a3;
 
-                #ifdef _PATTERN
-                    pattern3 *= tempMultiplier;
-                    pattern += pattern3;
-                #endif
 				#ifdef _RAVE
 					rave3 *= tempMultiplier;
 					raveCC += rave3;
 				#endif
             #endif
             #ifdef _U4
-                tempMultiplier = GetMultiplier(4, i.uv_MainTex);
+                tempMultiplier = GetMultiplier(_TileCount, 4, i.uv_MainTex);
                 c4 *= tempMultiplier;
                 diffuse += c4;
 
@@ -511,10 +476,6 @@ Shader "GentleShaders/Aurora A3"
                 a4 *= tempMultiplier;
                 aurora += a4;
 
-                #ifdef _PATTERN
-                    pattern4 *= tempMultiplier;
-                    pattern += pattern4;
-                #endif
 				#ifdef _RAVE
 					rave4 *= tempMultiplier;
 					raveCC += rave4;
@@ -539,14 +500,6 @@ Shader "GentleShaders/Aurora A3"
 			half3 secondary = lerp(black, diffuse * max(0.075, _SecondaryColor), cc.g);
 			half3 tertiary = lerp(black, diffuse * max(0.075, _TertiaryColor), cc.b);
 			half3 passthrough = lerp(diffuse, black, cc.r + cc.g + cc.b);
-
-			//Pattern
-			#ifdef _PATTERN
-				primary *= pattern.r;
-				secondary *= pattern.g;
-				tertiary *= pattern.b;
-				passthrough *= pattern.a;
-			#endif
 
 			//roughness
 			float rough = max(1.055 * pow(aurora.g, 0.416666667) - 0.055, 0); //Linear to sRGB conversion!
@@ -653,6 +606,11 @@ Shader "GentleShaders/Aurora A3"
 				raveColor += half4(raveCC.a, raveCC.a, raveCC.a, 1) * raveColor3 * raveA;
 			#endif
 
+			//float3 viewReflect = reflect(i.viewDir, finalNormal.xyz);
+			//float3 lum = Luminance(finalColor);
+			//float node_5375 = dot(lerp( lerp( (finalColor.a*_Roughness), (dot(lum,float3(0.3,0.59,0.11))*_Roughness), 1 ), ((calculatedRoughness*4.0)*_Roughness), 0 ),float3(0.3,0.59,0.11));
+			//float iG = ((abs(dot(viewReflect,i.viewDir))+(0.5*dot(lerp( viewReflect, finalNormal, 1 ),i.viewDir)+0.5/_InverseGlossGain))*_InverseGloss);
+
 			//out
 			o.Albedo = finalColor;
 			o.Normal = finalNormal;
@@ -662,11 +620,13 @@ Shader "GentleShaders/Aurora A3"
 			#ifdef _RAVE
 				o.Emission += raveColor;
 			#endif
-			o.Alpha = displayMetalProperty;
+			o.Alpha = pack_floats_4bpf(displayMetalProperty, finalColor.a);
+			clip((finalColor.a - _alphaCutoff) + _cutoffDisable);
 		}
 
 		ENDCG
 	}
+	
 	Fallback "Diffuse"
-	CustomEditor "GentleShaders.Aurora.A3.AuroraA3Editor"
+	CustomEditor "GentleShaders.AuroraAR4.AuroraEditor"
 }

@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
 using UnityEditor;
-using GentleShaders.Aurora.Common;
+using GentleShaders.AuroraAR4.Common;
 
-namespace GentleShaders.Aurora.AR2
+namespace GentleShaders.AuroraAR4.AR2
 {
     /// <summary>
     /// Aurora Shader About Window. Temporary implementation, upon PR2 will likely retrieve body content from a webserver.

@@ -25,7 +25,7 @@ SOFTWARE.
 */
 
 
-Shader "GentleShaders/Aurora A3"
+Shader "GentleShaders/Aurora A3 AlphaTest"
 {
 	Properties
 	{
@@ -113,24 +113,19 @@ Shader "GentleShaders/Aurora A3"
 		_audioLinkExclusive1("AL Exclusive 0", Int) = 0
 		_audioLinkExclusive2("AL Exclusive 0", Int) = 0
 		_audioLinkExclusive3("AL Exclusive 0", Int) = 0
-		
-		_audioLinkAdd0("Add AL Value 0", Int) = 1
-		_audioLinkAdd1("Add AL Value 1", Int) = 1
-		_audioLinkAdd2("Add AL Value 2", Int) = 1
-		_audioLinkAdd3("Add AL Value 3", Int) = 1
 
 		[Enum(Add,0,Subtract,1,Multiply,2,Divide,3)] _BlendMode ("Pattern Blend Mode", Float) = 0
+		_alphaTestValue ("AlphaTest Value (Cutout)", Range(0, 1)) = 0.0
 	}
 
     SubShader
     {
-		Tags { "RenderType" = "Opaque"  "Queue" = "Geometry+0" }
+		Tags { "RenderType" = "TransparentCutout"  "Queue" = "AlphaTest" }
 		Cull Back
 		ZWrite On
 		ZTest LEqual
 		CGPROGRAM
 
-		#include "../../CgInc/AuroraCommon.cginc"
 		#include "../../CgInc/AuroraBRDF.cginc"
 		#pragma target 4.0
 		#pragma only_renderers d3d11 glcore gles
@@ -155,6 +150,7 @@ Shader "GentleShaders/Aurora A3"
 		uniform fixed _lightingSwitch;
 		uniform int _giBoost;
 		uniform int _uvMethodSwitch;
+		uniform fixed _alphaTestValue;
 
 		void LightingAurora_GI (SurfaceOutput s, UnityGIInput data, inout UnityGI gi)
 		{
@@ -185,7 +181,6 @@ Shader "GentleShaders/Aurora A3"
 			float2 uv_MainTex;
 			float2 uv2_Decals;
 			float2 uv_Pattern;
-			float2 uv_RaveMask;
 		};
 
 		SamplerState sampler_linear_repeat;
@@ -292,11 +287,6 @@ Shader "GentleShaders/Aurora A3"
 		uniform uint _chronotensityScroll1;
 		uniform uint _chronotensityScroll2;
 		uniform uint _chronotensityScroll3;
-		
-		uniform uint _audioLinkAdd0;
-		uniform uint _audioLinkAdd1;
-		uniform uint _audioLinkAdd2;
-		uniform uint _audioLinkAdd3;
 
 		uint _TileCount;
 
@@ -587,10 +577,10 @@ Shader "GentleShaders/Aurora A3"
 					time.w += (AudioLinkGetChronoTime(0, 2) * 0.05) * _chronotensityScroll3;
 				#endif
 
-				half raveR = tex2D(_RaveMask, i.uv_RaveMask + half2(_Time.x * _RaveRG.r, time.x * _RaveRG.g)).r;
-				half raveG = tex2D(_RaveMask, i.uv_RaveMask + half2(_Time.x * _RaveRG.b, time.y * _RaveRG.a)).g;
-				half raveB = tex2D(_RaveMask, i.uv_RaveMask + half2(_Time.x * _RaveBA.r, time.z * _RaveBA.g)).b;
-				half raveA = tex2D(_RaveMask, i.uv_RaveMask + half2(_Time.x * _RaveBA.b, time.w * _RaveBA.a)).a;
+				half raveR = tex2D(_RaveMask, i.uv_MainTex + half2(_Time.x * _RaveRG.r, time.x * _RaveRG.g)).r;
+				half raveG = tex2D(_RaveMask, i.uv_MainTex + half2(_Time.x * _RaveRG.b, time.y * _RaveRG.a)).g;
+				half raveB = tex2D(_RaveMask, i.uv_MainTex + half2(_Time.x * _RaveBA.r, time.z * _RaveBA.g)).b;
+				half raveA = tex2D(_RaveMask, i.uv_MainTex + half2(_Time.x * _RaveBA.b, time.w * _RaveBA.a)).a;
 
 				half4 raveColor0 = _RaveColor;
 				half4 raveColor1 = _RaveSecondaryColor;
@@ -607,7 +597,7 @@ Shader "GentleShaders/Aurora A3"
 
 					half4 audioLink = AudioLinkData(ALPASS_AUDIOLINK + int2(0, i.uv_MainTex.y));
 					raveR *= 0.75;
-					raveR += audioLink.r * 0.25 * _audioLinkAdd0;
+					raveR += audioLink.r * 0.25;
 					raveR = saturate(raveR);
 					raveR *= (1.0 - _audioLinkExclusive0);
 					//Going to gamma and back again to get the equivalent of an HDR 'intensity' of 2 in the color picker
@@ -617,7 +607,7 @@ Shader "GentleShaders/Aurora A3"
 					raveColor0 = lerp(_RaveColor, themeColor0, _useALThemeColor0 * step(0.1, Luminance(themeColor0)));
 
 					raveG *= 0.75;
-					raveG += audioLink.g * 0.25 * _audioLinkAdd1;
+					raveG += audioLink.g * 0.25;
 					raveG = saturate(raveG);
 					raveG *= (1.0 - _audioLinkExclusive1);
 					//Going to gamma and back again to get the equivalent of an HDR 'intensity' of 2 in the color picker
@@ -627,7 +617,7 @@ Shader "GentleShaders/Aurora A3"
 					raveColor1 = lerp(_RaveSecondaryColor, themeColor1, _useALThemeColor1 * step(0.1, Luminance(themeColor1)));
 					
 					raveB *= 0.75;
-					raveB += audioLink.b * 0.25 * _audioLinkAdd2;
+					raveB += audioLink.b * 0.25;
 					raveB = saturate(raveB);
 					raveB *= (1.0 - _audioLinkExclusive2);
 					//Going to gamma and back again to get the equivalent of an HDR 'intensity' of 2 in the color picker
@@ -637,7 +627,7 @@ Shader "GentleShaders/Aurora A3"
 					raveColor2 = lerp(_RaveTertiaryColor, themeColor2, _useALThemeColor2 * step(0.1, Luminance(themeColor2)));
 
 					raveA *= 0.75;
-					raveA += audioLink.r * 0.25 * _audioLinkAdd3;
+					raveA += audioLink.r * 0.25;
 					raveA = saturate(raveA);
 					raveA *= (1.0 - _audioLinkExclusive3);
 					//Going to gamma and back again to get the equivalent of an HDR 'intensity' of 2 in the color picker
@@ -654,6 +644,7 @@ Shader "GentleShaders/Aurora A3"
 			#endif
 
 			//out
+			clip(finalColor.a - _alphaTestValue);
 			o.Albedo = finalColor;
 			o.Normal = finalNormal;
 			o.Specular = occlusionTex;

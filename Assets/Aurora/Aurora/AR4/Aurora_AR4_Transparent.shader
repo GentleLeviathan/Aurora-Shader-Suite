@@ -25,7 +25,7 @@ SOFTWARE.
 */
 
 
-Shader "GentleShaders/Aurora"
+Shader "Hidden/GentleShaders/Aurora_AR4_Transparent"
 {
 	Properties
 	{
@@ -133,9 +133,10 @@ Shader "GentleShaders/Aurora"
 		ZTest [_ZTest]
 		CGPROGRAM
 
-		#include "../CgInc/AuroraCommon.cginc"
-		#include "../CgInc/AuroraBRDF.cginc"
-		#include "../CgInc/AuroraFiveX.cginc"
+		#include "../../CgInc/AuroraCommon.cginc"
+		#include "../../CgInc/AuroraBRDF.cginc"
+		#include "../../CgInc/AuroraFiveX.cginc"
+
 		#pragma target 4.0
 		#pragma only_renderers d3d11 glcore gles
 		#pragma surface surface Aurora addshadow fullforwardshadows keepalpha
@@ -151,7 +152,7 @@ Shader "GentleShaders/Aurora"
         #pragma shader_feature_local _U4				//128
 
 		#ifdef _VRCAUDIOLINK
-			#include "../CgInc/AudioLink/AuroraAL.cginc"
+			#include "../../CgInc/AudioLink/AuroraAL.cginc"
 		#endif
 
 		uniform uint _lightingBypass;
@@ -610,5 +611,5 @@ Shader "GentleShaders/Aurora"
 	
 
 	Fallback "Diffuse"
-	CustomEditor "GentleShaders.Aurora.AuroraEditor"
+	CustomEditor "GentleShaders.AuroraAR4.AuroraEditor"
 }

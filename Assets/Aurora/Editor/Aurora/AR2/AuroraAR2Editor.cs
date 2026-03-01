@@ -6,7 +6,7 @@ using GentleShaders.Aurora.Helpers;
 using GentleShaders.Aurora.AR2.Helpers;
 using UnityEditor.PackageManager;
 using System.Linq;
-using GentleShaders.Aurora.Common;
+using GentleShaders.AuroraAR4.Common;
 
 /// <summary>
 /// Aurora Shader Editor + UI. Contains a large number of options and features, and holds the interface for the included texture helpers.
@@ -14,7 +14,7 @@ using GentleShaders.Aurora.Common;
 /// WIP!
 /// </summary>
 
-namespace GentleShaders.Aurora.AR2
+namespace GentleShaders.AuroraAR4.AR2
 {
     [CanEditMultipleObjects]
     public class AuroraAR2Editor : ShaderGUI

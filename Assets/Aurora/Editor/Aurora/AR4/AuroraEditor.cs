@@ -2,21 +2,20 @@
 using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
-using GentleShaders.Aurora.Helpers;
 using UnityEditor.PackageManager;
 using System.Linq;
 using GentleShaders.AuroraAR4.Common;
 using GentleShaders.Aurora.A3.Helpers;
 
 /// <summary>
-/// Aurora ND Shader Editor + UI.
+/// Aurora Shader Editor + UI.
 /// WIP!
 /// </summary>
 
-namespace GentleShaders.AuroraAR4.A3
+namespace GentleShaders.AuroraAR4
 {
     [CanEditMultipleObjects]
-    public class AuroraA3Editor : ShaderGUI
+    public class AuroraEditor : ShaderGUI
     {
         #region Properties and Fields
 
@@ -24,35 +23,30 @@ namespace GentleShaders.AuroraAR4.A3
         MaterialProperty mainTex;
         MaterialProperty cc;
         MaterialProperty auroraTex;
-        MaterialProperty pattern;
         MaterialProperty normal;
         MaterialProperty raveCC;
 
         MaterialProperty mainTex1;
         MaterialProperty cc1;
         MaterialProperty auroraTex1;
-        MaterialProperty pattern1;
         MaterialProperty normal1;
         MaterialProperty raveCC1;
 
         MaterialProperty mainTex2;
         MaterialProperty cc2;
         MaterialProperty auroraTex2;
-        MaterialProperty pattern2;
         MaterialProperty normal2;
         MaterialProperty raveCC2;
 
         MaterialProperty mainTex3;
         MaterialProperty cc3;
         MaterialProperty auroraTex3;
-        MaterialProperty pattern3;
         MaterialProperty normal3;
         MaterialProperty raveCC3;
 
         MaterialProperty mainTex4;
         MaterialProperty cc4;
         MaterialProperty auroraTex4;
-        MaterialProperty pattern4;
         MaterialProperty normal4;
         MaterialProperty raveCC4;
 
@@ -66,11 +60,9 @@ namespace GentleShaders.AuroraAR4.A3
         MaterialProperty metalness;
         MaterialProperty roughness;
         MaterialProperty deepness;
+        MaterialProperty alphaCutoff;
 
         MaterialProperty colorTexture;
-        MaterialProperty altUVMethod;
-        MaterialProperty giBoost;
-        MaterialProperty bypassLighting;
         MaterialProperty illuminationColor;
 
         MaterialProperty raveMask;
@@ -96,6 +88,8 @@ namespace GentleShaders.AuroraAR4.A3
         MaterialProperty themeColor2;
         MaterialProperty themeColor3;
 
+        MaterialProperty giBoost;
+
         private Texture2D header;
         private bool texFound;
         private bool performedUpdateCheck;
@@ -106,10 +100,6 @@ namespace GentleShaders.AuroraAR4.A3
 
         private bool colorTexToggle;
         private bool alphaRoughnessToggle;
-        private bool bypassLightingForBake;
-        private bool bypassLightingToggle;
-        private bool boostAmbient;
-        private bool useND5UVMethod;
 
         private int dimensionCount = 0;
         private bool n0, n1, n2, n3, n4;
@@ -120,7 +110,6 @@ namespace GentleShaders.AuroraAR4.A3
         private bool useAudioLink;
         private bool audioLinkCheckComplete;
         private bool showHelpers;
-        private bool showAdvanced;
         private bool updateReady;
 
         private bool useChronoScroll0;
@@ -138,6 +127,15 @@ namespace GentleShaders.AuroraAR4.A3
         private bool useALThemeColor2;
         private bool useALThemeColor3;
 
+        private Aurora_Transparency_Setting transparencySetting = Aurora_Transparency_Setting.Opaque;
+        private Aurora_GI_Setting giSetting = Aurora_GI_Setting.Normal;
+        private Aurora_Lighting_Setting lightingSetting = Aurora_Lighting_Setting.Lit;
+        private Aurora_BLSH_Setting bakedLightSetting = Aurora_BLSH_Setting.AccountForBLSH;
+        private Aurora_UVLayout_Setting uvLayoutSetting = Aurora_UVLayout_Setting.FiveX;
+
+        int selectedTab;
+        int shaderVariantId;
+
         private UnityEditor.PackageManager.Requests.ListRequest packageManagerListRequest;
 
         #endregion
@@ -146,7 +144,7 @@ namespace GentleShaders.AuroraAR4.A3
 
         private void InitTex()
         {
-            header = (Texture2D)AssetDatabase.LoadAssetAtPath("Assets/GentleShaders/Aurora/Editor/Aurora/Assets/A3/Aurora_Header.png", typeof(Texture2D)) ?? new Texture2D(1, 1);
+            header = (Texture2D)AssetDatabase.LoadAssetAtPath("Assets/GentleShaders/Aurora/Editor/Aurora/Assets/Aurora_Header.png", typeof(Texture2D)) ?? new Texture2D(1, 1);
             texFound = true;
         }
 
@@ -160,7 +158,7 @@ namespace GentleShaders.AuroraAR4.A3
 
             if (masterVersion > currentVersionNumber)
             {
-                updateString = "An update is available! (Current Version " + AuroraCommon.currentVersion + ")" + "\n(New Version " + updateCheckResult + ")";
+                updateString = "An update is available! (Current Version " + AuroraCommon.currentVersion + ")" + "\n(New Version " + updateCheckResult + ") ";
                 updateReady = true;
             }
             if(currentVersionNumber > masterVersion)
@@ -228,6 +226,13 @@ namespace GentleShaders.AuroraAR4.A3
                 showRave = true;
             }
 
+            transparencySetting = mat.GetFloat("_DstBlend") == 0 ? Aurora_Transparency_Setting.Opaque : Aurora_Transparency_Setting.Transparent;
+            transparencySetting = mat.GetFloat("_cutoffDisable") == 1 ? transparencySetting : Aurora_Transparency_Setting.Cutout;
+            lightingSetting = mat.GetFloat("_lightingBypass") == 0 ? Aurora_Lighting_Setting.Lit : Aurora_Lighting_Setting.Unlit;
+            giSetting = ValueTestApproximation(mat.GetFloat("_giBoost"), 0.0f, 0.001f) ? Aurora_GI_Setting.Normal : Aurora_GI_Setting.Custom;
+            bakedLightSetting = mat.GetFloat("_accountForBLSH") == 0 ? Aurora_BLSH_Setting.Ignore : Aurora_BLSH_Setting.AccountForBLSH;
+            uvLayoutSetting = mat.GetFloat("_uvMethodSwitch") == 0 ? Aurora_UVLayout_Setting.FiveX : Aurora_UVLayout_Setting.ND5;
+
             useAudioLink = mat.IsKeywordEnabled("_VRCAUDIOLINK");
 
             useChronoScroll0 = chronoScroll0.floatValue > 0;
@@ -244,10 +249,6 @@ namespace GentleShaders.AuroraAR4.A3
             useALThemeColor1 = themeColor1.floatValue > 0;
             useALThemeColor2 = themeColor2.floatValue > 0;
             useALThemeColor3 = themeColor3.floatValue > 0;
-
-            bypassLightingToggle = bypassLighting.floatValue > 0;
-            boostAmbient = giBoost.floatValue > 0;
-            useND5UVMethod = altUVMethod.floatValue > 0;
 
             if (dimensionCount == 0)
             {
@@ -288,7 +289,7 @@ namespace GentleShaders.AuroraAR4.A3
                 }
                 catch (NullReferenceException e)
                 {
-                    Debug.LogError("AuroraA3Editor: " + e.Message);
+                    Debug.LogError("AuroraEditor: " + e.Message);
                     return;
                 }
             }
@@ -305,38 +306,32 @@ namespace GentleShaders.AuroraAR4.A3
         private void GetProperties(MaterialEditor materialEditor, MaterialProperty[] properties, Material target)
         {
             //-----------Textures
-
             mainTex = ShaderGUI.FindProperty("_MainTex", properties);
             cc = ShaderGUI.FindProperty("_CC", properties);
-            pattern = ShaderGUI.FindProperty("_Pattern", properties);
             auroraTex = ShaderGUI.FindProperty("_Aurora", properties);
             normal = ShaderGUI.FindProperty("_BumpMap", properties);
             raveCC = ShaderGUI.FindProperty("_RaveCC", properties);
 
             mainTex1 = ShaderGUI.FindProperty("_MainTex1", properties);
             cc1 = ShaderGUI.FindProperty("_CC1", properties);
-            pattern1 = ShaderGUI.FindProperty("_Pattern1", properties);
             auroraTex1 = ShaderGUI.FindProperty("_Aurora1", properties);
             normal1 = ShaderGUI.FindProperty("_BumpMap1", properties);
             raveCC1 = ShaderGUI.FindProperty("_RaveCC1", properties);
 
             mainTex2 = ShaderGUI.FindProperty("_MainTex2", properties);
             cc2 = ShaderGUI.FindProperty("_CC2", properties);
-            pattern2 = ShaderGUI.FindProperty("_Pattern2", properties);
             auroraTex2 = ShaderGUI.FindProperty("_Aurora2", properties);
             normal2 = ShaderGUI.FindProperty("_BumpMap2", properties);
             raveCC2 = ShaderGUI.FindProperty("_RaveCC2", properties);
 
             mainTex3 = ShaderGUI.FindProperty("_MainTex3", properties);
             cc3 = ShaderGUI.FindProperty("_CC3", properties);
-            pattern3 = ShaderGUI.FindProperty("_Pattern3", properties);
             auroraTex3 = ShaderGUI.FindProperty("_Aurora3", properties);
             normal3 = ShaderGUI.FindProperty("_BumpMap3", properties);
             raveCC3 = ShaderGUI.FindProperty("_RaveCC3", properties);
 
             mainTex4 = ShaderGUI.FindProperty("_MainTex4", properties);
             cc4 = ShaderGUI.FindProperty("_CC4", properties);
-            pattern4 = ShaderGUI.FindProperty("_Pattern4", properties);
             auroraTex4 = ShaderGUI.FindProperty("_Aurora4", properties);
             normal4 = ShaderGUI.FindProperty("_BumpMap4", properties);
             raveCC4 = ShaderGUI.FindProperty("_RaveCC4", properties);
@@ -350,15 +345,13 @@ namespace GentleShaders.AuroraAR4.A3
             tertiaryColor = ShaderGUI.FindProperty("_TertiaryColor", properties);
 
             //-----------Values
+            metalness = ShaderGUI.FindProperty("_trueMetallic", properties);
             roughness = ShaderGUI.FindProperty("_Roughness", properties);
             deepness = ShaderGUI.FindProperty("_Deepness", properties);
+            alphaCutoff = ShaderGUI.FindProperty("_alphaCutoff", properties);
 
             //-----------Toggles
-            metalness = ShaderGUI.FindProperty("_trueMetallic", properties);
             colorTexture = ShaderGUI.FindProperty("_ColorTexture", properties);
-            altUVMethod = ShaderGUI.FindProperty("_uvMethodSwitch", properties);
-            giBoost = ShaderGUI.FindProperty("_giBoost", properties);
-            bypassLighting = ShaderGUI.FindProperty("_lightingBypass", properties);
 
             //-----------Illum
             illuminationColor = ShaderGUI.FindProperty("_IllumColor", properties);
@@ -386,6 +379,8 @@ namespace GentleShaders.AuroraAR4.A3
             alExclusive1 = ShaderGUI.FindProperty("_audioLinkExclusive1", properties);
             alExclusive2 = ShaderGUI.FindProperty("_audioLinkExclusive2", properties);
             alExclusive3 = ShaderGUI.FindProperty("_audioLinkExclusive3", properties);
+
+            giBoost = ShaderGUI.FindProperty("_giBoost", properties);
         }
 
         private void DisplayCustomGUI(MaterialEditor materialEditor, Material target)
@@ -399,6 +394,203 @@ namespace GentleShaders.AuroraAR4.A3
 
             EditorGUI.BeginChangeCheck();
 
+            #region ToolbarTabs
+
+            selectedTab = GUILayout.Toolbar(selectedTab, new string[] { "Material", "Shader", "Statistics" });
+
+            switch (selectedTab)
+            {
+                case 0:
+                    DisplayMaterialGUI(materialEditor, target);
+                    break;
+                case 1:
+                    DisplayShaderSettingsGUI(materialEditor, target);
+                    break;
+                case 2:
+                    DisplayStatisticsGUI(materialEditor, target);
+                    break;
+            }
+
+            #endregion
+        }
+
+        private void DisplayShaderSettingsGUI(MaterialEditor materialEditor, Material target)
+        {
+            GUILayout.Space(10f);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(4f);
+            transparencySetting = (Aurora_Transparency_Setting)EditorGUILayout.EnumPopup("Transparency Setting", transparencySetting);
+
+            target.SetFloat("_DstBlend", transparencySetting == Aurora_Transparency_Setting.Transparent ? 10 : 0);
+            target.SetFloat("_cutoffDisable", transparencySetting == Aurora_Transparency_Setting.Cutout ? 0 : 1);
+            target.SetFloat("_alphaCutoff", transparencySetting == Aurora_Transparency_Setting.Cutout ? target.GetFloat("_alphaCutoff") : 0);
+            target.renderQueue = transparencySetting == Aurora_Transparency_Setting.Opaque ? (int)UnityEngine.Rendering.RenderQueue.Geometry : (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            if (transparencySetting != Aurora_Transparency_Setting.Opaque)
+            {
+                if (target.shader.name != "Hidden/GentleShaders/Aurora_AR4_Transparent")
+                {
+                    target.shader = Shader.Find("Hidden/GentleShaders/Aurora_AR4_Transparent");
+                }
+            }
+            else
+            {
+                if (target.shader.name != "GentleShaders/Aurora_AR4")
+                {
+                    target.shader = Shader.Find("GentleShaders/Aurora_AR4");
+                }
+            }
+
+            GUILayout.Space(4f);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10f);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(4f);
+            giSetting = (Aurora_GI_Setting)EditorGUILayout.EnumPopup("Global Illumination Setting *", giSetting);
+            GUILayout.Space(4f);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(10f);
+            if (giSetting == Aurora_GI_Setting.Custom && ValueTestApproximation(giBoost.floatValue, 0.0f, 0.001f))
+            {
+                giBoost.floatValue = 1.0f;
+            }
+            if (giSetting == Aurora_GI_Setting.Custom)
+            {
+                giBoost.floatValue = materialEditor.RangeProperty(giBoost, "GI Boost Value");
+            }
+            else
+            {
+                giBoost.floatValue = 0.0f;
+            }
+            GUILayout.Space(4f);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10f);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(4f);
+            lightingSetting = (Aurora_Lighting_Setting)EditorGUILayout.EnumPopup("Lighting Setting *", lightingSetting);
+            GUILayout.Space(4f);
+            GUILayout.EndHorizontal();
+            
+            GUILayout.Space(10f);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(4f);
+            bakedLightSetting = (Aurora_BLSH_Setting)EditorGUILayout.EnumPopup("Baked Light Setting *", bakedLightSetting);
+            GUILayout.Space(4f);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10f);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(4f);
+            uvLayoutSetting = (Aurora_UVLayout_Setting)EditorGUILayout.EnumPopup("UV Layout Setting", uvLayoutSetting);
+            GUILayout.Space(4f);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(30f);
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(4f);
+            GUILayout.TextArea("Settings marked with an asterisk (*) are settings that may change the lighting model such that it is no longer energy-conserving. " +
+                "However, some settings may appear more 'realistic' than an otherwise energy-conserving model." +
+                "\n\nFor example, the default 'Baked Lighting Setting' is set to account for baked lights not providing a light direction for specularity. This often results in a more grounded appearance despite violating energy conservation.");
+            GUILayout.Space(4f);
+            GUILayout.EndHorizontal();
+
+            ApplyShaderFeatures(target);
+            CalculateShaderVariantID(target);
+            ApplyToggles(target);
+        }
+
+        private void DisplayStatisticsGUI(MaterialEditor materialEditor, Material target)
+        {
+            ApplyShaderFeatures(target);
+            CalculateShaderVariantID(target);
+            ApplyToggles(target);
+
+            int textureCount = 0;
+            long textureByteCount = 0;
+            if (mainTex.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)mainTex.textureValue); }
+            if (mainTex1.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)mainTex1.textureValue); }
+            if (mainTex2.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)mainTex2.textureValue); }
+            if (mainTex3.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)mainTex3.textureValue); }
+            if (mainTex4.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)mainTex4.textureValue); }
+
+            if (auroraTex.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)auroraTex.textureValue); }
+            if (auroraTex1.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)auroraTex1.textureValue); }
+            if (auroraTex2.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)auroraTex2.textureValue); }
+            if (auroraTex3.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)auroraTex3.textureValue); }
+            if (auroraTex4.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)auroraTex4.textureValue); }
+
+            if (cc.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)cc.textureValue); }
+            if (cc1.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)cc1.textureValue); }
+            if (cc2.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)cc2.textureValue); }
+            if (cc3.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)cc3.textureValue); }
+            if (cc4.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)cc4.textureValue); }
+
+            if (normal.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)normal.textureValue); }
+            if (normal1.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)normal1.textureValue); }
+            if (normal2.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)normal2.textureValue); }
+            if (normal3.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)normal3.textureValue); }
+            if (normal4.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)normal4.textureValue); }
+
+            if (raveCC.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)raveCC.textureValue); }
+            if (raveCC1.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)raveCC1.textureValue); }
+            if (raveCC2.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)raveCC2.textureValue); }
+            if (raveCC3.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)raveCC3.textureValue); }
+            if (raveCC4.textureValue) { textureCount++; textureByteCount += AuroraCommon.GetUncompressedTexture2DByteCount((Texture2D)raveCC4.textureValue); }
+
+            GUILayout.Space(40f);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(MakeLabel("Material Statistics", "Provides detailed information about the material."), EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10f);
+            EditorGUILayout.IntField("Texture Count", textureCount);
+            GUILayout.Space(10f);
+            EditorGUILayout.TextField("Uncompressed Texture Size (VRAM)", AuroraCommon.GetUncompressedTexture2DSizeString(textureByteCount));
+            GUILayout.Space(10f);
+            EditorGUILayout.IntField("Shader Variant ID", shaderVariantId);
+            GUILayout.Space(10f);
+            EditorGUILayout.TextField("Material Keywords", GetShaderKeywordString(target));
+            GUILayout.Space(10f);
+
+            Vector4 nameVector = target.GetVector("_TextureSetName_0");
+        }
+
+        private string GetShaderKeywordString(Material mat)
+        {
+            string keywords = "";
+            for (int i = 0; i < mat.shaderKeywords.Length; i++)
+            {
+                keywords += mat.shaderKeywords[i];
+                if (i != mat.shaderKeywords.Length - 1)
+                {
+                    keywords += ", ";
+                }
+            }
+            return keywords;
+        }
+
+        private void CalculateShaderVariantID(Material mat)
+        {
+            int variantId = 0;
+            if(mat.shaderKeywords.Length > 0)
+            {
+                variantId = 2;
+            }
+            for (int i = 1; i < mat.shaderKeywords.Length; i++)
+            {
+                variantId *= 2;
+            }
+            shaderVariantId = variantId;
+        }
+
+        private void DisplayMaterialGUI(MaterialEditor materialEditor, Material target)
+        {
             #region Textures and Colors
 
             //Textures
@@ -407,8 +599,9 @@ namespace GentleShaders.AuroraAR4.A3
             #region TextureDrawers
 
             //Only show the toggle button if there is more than one set of textures
-            if(dimensionCount > 0)
+            if (dimensionCount > 0)
             {
+                Vector4 nameVector = target.GetVector("_TextureSetName_0");
                 if (GUILayout.Button(MakeLabel("Base Textures", "Displays the section for the base 0-1 UV space textures.")))
                 {
                     n0 = !n0;
@@ -428,17 +621,12 @@ namespace GentleShaders.AuroraAR4.A3
                 materialEditor.TextureProperty(auroraTex, "Aurora Texture", false);
                 materialEditor.TextureProperty(raveCC, "Rave CC (RGBA)", false);
 
-                materialEditor.TextureProperty(pattern, "Pattern (RGBA)", false);
-                GUILayout.BeginHorizontal();
-                GUILayout.Label(MakeLabel("Pattern Tiling", "The tiling applied to the pattern texture"));
-                GUILayout.FlexibleSpace();
-                pattern.textureScaleAndOffset = EditorGUILayout.Vector2Field("", pattern.textureScaleAndOffset);
-                GUILayout.EndHorizontal();
                 GUILayout.Space(4f);
             }
 
-            if(dimensionCount > 0)
+            if (dimensionCount > 0)
             {
+                Vector4 nameVector = target.GetVector("_TextureSetName_1");
                 if (GUILayout.Button(MakeLabel("Texture Set 1", "Displays the section for the additional 1-2 UV space textures.")))
                 {
                     n1 = !n1;
@@ -453,12 +641,12 @@ namespace GentleShaders.AuroraAR4.A3
 
                     materialEditor.TextureProperty(auroraTex1, "Aurora Texture", false);
                     materialEditor.TextureProperty(raveCC1, "Rave CC (RGBA)", false);
-                    materialEditor.TextureProperty(pattern1, "Pattern (RGBA)", false);
                     GUILayout.Space(4f);
                 }
             }
             if (dimensionCount > 1)
             {
+                Vector4 nameVector = target.GetVector("_TextureSetName_2");
                 if (GUILayout.Button(MakeLabel("Texture Set 2", "Displays the section for the additional 2-3 UV space textures.")))
                 {
                     n2 = !n2;
@@ -473,12 +661,12 @@ namespace GentleShaders.AuroraAR4.A3
 
                     materialEditor.TextureProperty(auroraTex2, "Aurora Texture", false);
                     materialEditor.TextureProperty(raveCC2, "Rave CC (RGBA)", false);
-                    materialEditor.TextureProperty(pattern2, "Pattern (RGBA)", false);
                     GUILayout.Space(4f);
                 }
             }
             if (dimensionCount > 2)
             {
+                Vector4 nameVector = target.GetVector("_TextureSetName_3");
                 if (GUILayout.Button(MakeLabel("Texture Set 3", "Displays the section for the additional 3-4 UV space textures.")))
                 {
                     n3 = !n3;
@@ -493,12 +681,12 @@ namespace GentleShaders.AuroraAR4.A3
 
                     materialEditor.TextureProperty(auroraTex3, "Aurora Texture", false);
                     materialEditor.TextureProperty(raveCC3, "Rave CC (RGBA)", false);
-                    materialEditor.TextureProperty(pattern3, "Pattern (RGBA)", false);
                     GUILayout.Space(4f);
                 }
             }
             if (dimensionCount > 3)
             {
+                Vector4 nameVector = target.GetVector("_TextureSetName_4");
                 if (GUILayout.Button(MakeLabel("Texture Set 4", "Displays the section for the additional 4-5 UV space textures.")))
                 {
                     n4 = !n4;
@@ -513,17 +701,16 @@ namespace GentleShaders.AuroraAR4.A3
 
                     materialEditor.TextureProperty(auroraTex4, "Aurora Texture", false);
                     materialEditor.TextureProperty(raveCC4, "Rave CC (RGBA)", false);
-                    materialEditor.TextureProperty(pattern4, "Pattern (RGBA)", false);
                     GUILayout.Space(4f);
                 }
             }
 
             GUILayout.Space(10f);
-            if(dimensionCount >= 4)
+            if (dimensionCount >= 4)
             {
                 if (GUILayout.Button(MakeLabel("Maximum Sets Reached", "Only 5 unique texture sets are supported at this time.")))
                 {
-                    
+
                 }
             }
             else
@@ -566,8 +753,12 @@ namespace GentleShaders.AuroraAR4.A3
             GUILayout.Space(8f);
             GUILayout.Label("Properties", EditorStyles.boldLabel);
             materialEditor.RangeProperty(metalness, "Metalness");
-            materialEditor.RangeProperty(roughness, "Roughness (1 - 0)");
+            materialEditor.RangeProperty(roughness, "Roughness");
             materialEditor.RangeProperty(deepness, "Color Depth");
+            if(transparencySetting == Aurora_Transparency_Setting.Cutout)
+            {
+                materialEditor.RangeProperty(alphaCutoff, "Alpha Cutoff");
+            }
 
             GUILayout.Space(8f);
 
@@ -576,7 +767,7 @@ namespace GentleShaders.AuroraAR4.A3
             #region Drawers
 
             //Custom Textures
-            if (GUILayout.Button(MakeLabel("Show Alt Textures", "Displays the alt textures section (i.e., Roughness, Occlusion, etc) of the shader. This will always be visible if there are filled properties.")))
+            if (GUILayout.Button(MakeLabel("Show UV2 Section", "Show decal textures applied via UV2. This will always be visible if there are filled properties.")))
             {
                 showAltTextures = !showAltTextures;
             }
@@ -774,7 +965,7 @@ namespace GentleShaders.AuroraAR4.A3
             #region Helper Drawers
 
             //Helpers
-            if (GUILayout.Button(MakeLabel("Show Helpers", "Displays additional tools and helper functions included with the Utility shader.")))
+            if (GUILayout.Button(MakeLabel("Show Helpers", "Displays additional tools and helper functions included with the Aurora shader.")))
             {
                 showHelpers = !showHelpers;
             }
@@ -796,25 +987,6 @@ namespace GentleShaders.AuroraAR4.A3
                     }
                 }
                 GUILayout.Space(6f);
-            }
-
-            #endregion
-
-            #region Advanced Settings
-
-            if (GUILayout.Button(MakeLabel("Advanced...", "Displays advanced settings and settings that aren't automatically controlled.")))
-            {
-                showAdvanced = !showAdvanced;
-            }
-            if (showAdvanced)
-            {
-                GUILayout.Space(10f);
-                boostAmbient = GUILayout.Toggle(giBoost.floatValue > 0, MakeLabel("Boost GI? (Ambient Lighting/Reflection Probes)", "Enable to replicate the ambient lighting strength found in Aurora AR2. (Does not observe energy conservation)"));
-                GUILayout.Space(4f);
-                bypassLightingToggle = GUILayout.Toggle(bypassLighting.floatValue > 0, MakeLabel("Disable Lighting?", "Disables lighting temporarily to better visualize the material."));
-                GUILayout.Space(4f);
-                useND5UVMethod = GUILayout.Toggle(altUVMethod.floatValue > 0, MakeLabel("Use ND5 U-Scaled 0-1 UV Layout?", "If enabled, the mesh UV coordinates must be scaled along the 'U' axis so that they are within the 0-1 range. If disabled, each texture set has an additional 1.0 range on the 'U' axis. (eg. 0-1 for texture set 0, 1-2 for texture set 1, etc)"));
-                GUILayout.Space(4f);
             }
 
             #endregion
@@ -857,21 +1029,10 @@ namespace GentleShaders.AuroraAR4.A3
 
         private void ApplyShaderFeatures(Material mat)
         {
-            bool dimensionFlag;
-
-            if (mainTex1.textureValue || normal1.textureValue || cc1.textureValue || auroraTex1.textureValue) { mat.EnableKeyword("_U1"); dimensionFlag = true; } else { mat.DisableKeyword("_U1"); dimensionFlag = false; }
-            if (mainTex2.textureValue || normal2.textureValue || cc2.textureValue || auroraTex2.textureValue) { mat.EnableKeyword("_U2"); dimensionFlag = true; } else { mat.DisableKeyword("_U2"); dimensionFlag = false; }
-            if (mainTex3.textureValue || normal3.textureValue || cc3.textureValue || auroraTex3.textureValue) { mat.EnableKeyword("_U3"); dimensionFlag = true; } else { mat.DisableKeyword("_U3"); dimensionFlag = false; }
-            if (mainTex4.textureValue || normal4.textureValue || cc4.textureValue || auroraTex4.textureValue) { mat.EnableKeyword("_U4"); dimensionFlag = true; } else { mat.DisableKeyword("_U4"); dimensionFlag = false; }
-
-            if (dimensionFlag)
-            {
-                if (pattern1.textureValue || pattern2.textureValue || pattern3.textureValue || pattern4.textureValue) { mat.EnableKeyword("_PATTERN"); } else { mat.DisableKeyword("_PATTERN"); }
-            }
-            else
-            {
-                if (pattern.textureValue) { mat.EnableKeyword("_PATTERN"); } else { mat.DisableKeyword("_PATTERN"); }
-            }
+            if (mainTex1.textureValue || normal1.textureValue || cc1.textureValue || auroraTex1.textureValue) { mat.EnableKeyword("_U1"); } else { mat.DisableKeyword("_U1"); }
+            if (mainTex2.textureValue || normal2.textureValue || cc2.textureValue || auroraTex2.textureValue) { mat.EnableKeyword("_U2"); } else { mat.DisableKeyword("_U2"); }
+            if (mainTex3.textureValue || normal3.textureValue || cc3.textureValue || auroraTex3.textureValue) { mat.EnableKeyword("_U3"); } else { mat.DisableKeyword("_U3"); }
+            if (mainTex4.textureValue || normal4.textureValue || cc4.textureValue || auroraTex4.textureValue) { mat.EnableKeyword("_U4"); } else { mat.DisableKeyword("_U4"); }
 
             if (decals.textureValue || decalNormal.textureValue) { mat.EnableKeyword("_DECALS"); } else { mat.DisableKeyword("_DECALS"); }
 
@@ -886,9 +1047,11 @@ namespace GentleShaders.AuroraAR4.A3
         {
             mat.SetFloat("_AlphaRoughness", alphaRoughnessToggle ? 1 : 0);
             mat.SetFloat("_ColorTexture", colorTexToggle ? 1 : 0);
-            mat.SetInt("_uvMethodSwitch", useND5UVMethod ? 1 : 0);
-            mat.SetInt("_giBoost", boostAmbient ? 1 : 0);
-            mat.SetInt("_lightingBypass", bypassLightingToggle ? 1 : 0);
+
+            mat.SetInt("_uvMethodSwitch", uvLayoutSetting == Aurora_UVLayout_Setting.FiveX ? 0 : 1);
+            //mat.SetInt("_giBoost", giSetting == Aurora_GI_Setting.Normal ? 0 : 1);
+            mat.SetInt("_lightingBypass", lightingSetting == Aurora_Lighting_Setting.Lit ? 0 : 1);
+            mat.SetInt("_accountForBLSH", bakedLightSetting == Aurora_BLSH_Setting.AccountForBLSH ? 1 : 0);
 
             mat.SetInt("_chronotensityScroll0", useChronoScroll0 ? 1 : 0);
             mat.SetInt("_chronotensityScroll1", useChronoScroll1 ? 1 : 0);
@@ -904,6 +1067,8 @@ namespace GentleShaders.AuroraAR4.A3
             mat.SetInt("_audioLinkExclusive1", audioLinkExclusive1 ? 1 : 0);
             mat.SetInt("_audioLinkExclusive2", audioLinkExclusive2 ? 1 : 0);
             mat.SetInt("_audioLinkExclusive3", audioLinkExclusive3 ? 1 : 0);
+
+            mat.SetVector("_TextureSetName_0", StringToASCIIVector("TEST  567890"));
         }
 
         private GUIContent MakeLabel(string displayName, string tooltip = null)
@@ -912,6 +1077,96 @@ namespace GentleShaders.AuroraAR4.A3
             staticLabel.text = displayName;
             staticLabel.tooltip = tooltip;
             return staticLabel;
+        }
+
+        private Vector4 StringToASCIIVector(string text)
+        {
+            if (text.Length < 12)
+            {
+                for (int i = text.Length - 1; i < 12; i++)
+                {
+                    text += " ";
+                }
+            }
+            if (text.Length > 12)
+            {
+                text = text.Substring(0, 12);
+            }
+
+            string x = text.Substring(0, 3);
+            string y = text.Substring(3, 3);
+            string z = text.Substring(6, 3);
+            string w = text.Substring(9, 3);
+
+            int valueX = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                int character = (int)text[i];
+                valueX += character;
+                if (i < 2)
+                {
+                    valueX *= 100;
+                }
+            }
+            int valueY = 0;
+            for (int i = 3; i < 6; i++)
+            {
+                int character = (int)text[i];
+                valueY += character;
+                if (i < 5)
+                {
+                    valueY *= 100;
+                }
+            }
+            int valueZ = 0;
+            for (int i = 6; i < 9; i++)
+            {
+                int character = (int)text[i];
+                valueZ += character;
+                if (i < 8)
+                {
+                    valueZ *= 100;
+                }
+            }
+            int valueW = 0;
+            for (int i = 9; i < 12; i++)
+            {
+                int character = (int)text[i];
+                valueW += character;
+                if (i < 11)
+                {
+                    valueW *= 100;
+                }
+            }
+
+            Vector4 vector = new Vector4(valueX, valueY, valueZ, valueW);
+
+            return vector;
+        }
+
+        private string ASCIIFloatToString(float value)
+        {
+            int worker1, worker2, worker3 = 0;
+            string text = "";
+
+            //first char
+            worker1 = (int)value;
+            worker1 = worker1 / 10000;
+            char character = (char)worker1;
+            text += character;
+
+            //second char
+            worker2 = (int)value - (worker1 * 10000);
+            worker2 = worker2 / 100;
+            character = (char)worker2;
+            text += character;
+
+            //third char
+            worker3 = ((int)value - (worker1 * 10000)) - (worker2 * 100);
+            character = (char)worker3;
+            text += character;
+
+            return text;
         }
 
         /// <summary>

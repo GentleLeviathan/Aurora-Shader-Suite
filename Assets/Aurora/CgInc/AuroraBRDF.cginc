@@ -33,7 +33,7 @@ half4 AuroraBRDF(half3 albedo, half3 diffColor, half3 specColor, half oneMinusRe
 
 //Unity Standard BRDF1 lighting model with alpha support
 half4 AuroraBRDF4(half3 albedo, half3 diffColor, half3 specColor, half alpha, half oneMinusReflectivity, half metallic, half rough,
-			half occlusion, float3 normal, float3 viewDir, UnityLight light, UnityIndirect gi, int lightingBypass, int giBoost)
+			half occlusion, float3 normal, float3 viewDir, UnityLight light, UnityIndirect gi, int lightingBypass, float giBoost)
 {
 	half3 halfDir = Unity_SafeNormalize(light.dir + viewDir);
 	//This abs() should help eliminate artifacts
@@ -55,8 +55,8 @@ half4 AuroraBRDF4(half3 albedo, half3 diffColor, half3 specColor, half alpha, ha
 
 	gi.specular *= occlusion;
 
-	gi.diffuse += (gi.diffuse * giBoost * 2);
-	gi.specular += (gi.specular * giBoost * 2);
+	gi.diffuse += (gi.diffuse * giBoost);
+	gi.specular += (gi.specular * giBoost);
 
 	half3 color = diffColor * (gi.diffuse + (light.color * diffuseTerm)) + (specular * light.color) + (gi.specular * specColor);
 	color *= 1.0 - lightingBypass;
