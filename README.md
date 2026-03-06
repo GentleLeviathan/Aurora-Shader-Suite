@@ -3,12 +3,9 @@ Requires Unity 2019.1.x or greater.
 Includes output template for Substance Painter.
 
 A suite of tools and a shader for a personal project. Takes advantage of a texture swizzle ('Aurora') to represent Metallic, Roughness, Illumination (single channel emission), and Occlusion.
-AR3.0+ has made significant changes to the Aurora shader. The new A3 swizzle *must* be utilized.
+Please note it is recommended to delete all previous versions of the Aurora shader (Assets/GentleShaders/Aurora) when upgrading to Aurora Five.
 
-A helper to upgrade existing Aurora A2 textures to the A3 swizzle will be included at a later time.
-For now, you must export your textures from your texture program again, or utilize the included Aurora Packer helper to generate a new A3 texture.
-
-New lighting model is energy conserving* (Options allow modification to more closely match AR2)
+New lighting model is energy conserving* (Options allow modification to more closely match AR4)
 (There are clearly marked configurable options that violate energy-conservation but may appear more 'grounded' in some situations)
 
 ### Unique features include:
@@ -30,17 +27,6 @@ New lighting model is energy conserving* (Options allow modification to more clo
   * OpenGL to DirectX normal format (and vice-versa)
   * Tool to pack traditional Metallic, Smoothness, Emission, and Occlusion textures into the 'Aurora' swizzle format.
   * Material baking (for applying shader color zones, patterns, and depth to a new diffuse texture to be used elsewhere.) (Not yet(?) supported in AR3.0+)
-
-### Additional helpers to enable the use of assets inspired by Microsoft's 'Halo' games. (Via legacy AR2 interface)
-Supports armor sets and textures from the following 'Halo' games:
-
-* Halo Reach
-* Halo: Combat Evolved
-* Halo 2
-* Halo 3: ODST
-* Halo 3
-* Halo 4 (Storm)
-* Halo 5: Forge
 
 ## Substance Painter - Workflow Changes
   * Color Control (CC) textures are generated from User0, User1, User2, and User3 channels
