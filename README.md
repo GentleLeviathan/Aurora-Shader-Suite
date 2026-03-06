@@ -23,11 +23,6 @@ New lighting model is energy conserving* (Options allow modification to more clo
   
 ![Aurora_UDIM_Layout](https://user-images.githubusercontent.com/17507902/236114265-5fb332d8-f964-4fad-92e7-0313eee6a15c.png)
 
-### Includes a set of 'Helper' tools, including:
-  * OpenGL to DirectX normal format (and vice-versa)
-  * Tool to pack traditional Metallic, Smoothness, Emission, and Occlusion textures into the 'Aurora' swizzle format.
-  * Material baking (for applying shader color zones, patterns, and depth to a new diffuse texture to be used elsewhere.) (Not yet(?) supported in AR3.0+)
-
 ## Substance Painter - Workflow Changes
   * Color Control (CC) textures are generated from User0, User1, User2, and User3 channels
   * Height channel will be exported as normal information into the normal map
